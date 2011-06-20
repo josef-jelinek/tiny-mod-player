@@ -96,8 +96,7 @@ public final class Mod {
             efy = dec & 15;
           }
           final Instrument instr = smp < 0 || smp >= mod.sample.length ? null : mod.sample[smp];
-          final Note note = new Note(key, instr, eff, efx, efy, false);
-          mod.blocks[block].putNote(line, trk, note);
+          mod.blocks[block].putNote(line, trk, new Note(key, instr, eff, efx, efy, false));
         }
     }
     for (int i = 0; i < mod.sample.length; i++)
@@ -310,7 +309,7 @@ public final class Mod {
                 final Instrument instr =
                     smp < 0 || smp >= mod.sample.length ? null : mod.sample[smp];
                 final Note note =
-                    new Note(key, instr, effxy >> 8, effxy >> 4 & 15, effxy & 15, instr != null &
+                    new Note(key, instr, effxy >> 8, effxy >> 4 & 15, effxy & 15, instr != null &&
                         key == 0);
                 mod.blocks[block].putNote(line, track, note);
               }
