@@ -87,13 +87,13 @@ public final class BinaryData {
     return x;
   }
 
-  public String string(final int len) {
-    String s = "";
-    for (int i = 0; i < len; i++) {
+  public String string(final int length) {
+    final StringBuilder s = new StringBuilder(length);
+    for (int i = 0; i < length; i++) {
       final char c = (char)u1();
       if (c != 0)
-        s += c;
+        s.append(c);
     }
-    return s;
+    return s.toString();
   }
 }

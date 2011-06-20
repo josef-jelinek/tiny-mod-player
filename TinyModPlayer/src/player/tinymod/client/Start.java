@@ -3,6 +3,7 @@ package player.tinymod.client;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import player.tinymod.R;
 import android.app.ListActivity;
@@ -20,7 +21,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 public class Start extends ListActivity {
-  static final String MEDIA_PATH = "/sdcard/";
+  private static final String MEDIA_PATH = "/sdcard/Mods";
   private final List<String> songs = new ArrayList<String>();
   private final static ModFilter filter = new ModFilter();
   private TinyModServiceInterface tmsInterface;
@@ -44,13 +45,12 @@ public class Start extends ListActivity {
 
   public void updateSongList() {
     try {
-      final File home = new File(MEDIA_PATH);
-      final File fileList[] = home.listFiles(filter);
+      final List<File> fileList = listSongFiles(new File(MEDIA_PATH));
       tmsInterface.clearPlaylist();
       if (fileList != null) {
         for (final File file : fileList) {
           songs.add(file.getName());
-          tmsInterface.addSongPlaylist(file.getName());
+          tmsInterface.addSongPlaylist(file.getAbsolutePath());
         }
         final ArrayAdapter<String> songList =
             new ArrayAdapter<String>(this, R.layout.mod_item, songs);
@@ -61,6 +61,11 @@ public class Start extends ListActivity {
     } catch (final RemoteException e) {
       Log.e(getString(R.string.app_name), e.getMessage());
     }
+  }
+
+  private List<File> listSongFiles(final File directory) {
+    final File[] files = directory.listFiles(filter);
+    return files == null ? new ArrayList<File>(0) : Arrays.asList(files);
   }
 
   @Override
@@ -76,7 +81,8 @@ public class Start extends ListActivity {
 
   private static class ModFilter implements FilenameFilter {
     public boolean accept(final File dir, final String name) {
-      return name.endsWith(".mod") || name.endsWith(".med") || name.endsWith(".mp3");
+      final String s = name.toLowerCase();
+      return s.endsWith(".mod") || s.endsWith(".med") || s.endsWith(".mp3");
     }
   }
 }

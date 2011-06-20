@@ -5,8 +5,8 @@ public final class Sound {
       0, 24, 49, 74, 97, 120, 141, 161, 180, 197, 212, 224, 235, 244, 250, 253, 255, 253, 250, 244,
       235, 224, 212, 197, 180, 161, 141, 120, 97, 74, 49, 24, 0, -24, -49, -74, -97, -120, -141,
       -161, -180, -197, -212, -224, -235, -244, -250, -253, -255, -253, -250, -244, -235, -224,
-      -212, -197, -180, -161, -141, -120, -97, -74, -49, -24, };
-  private final long magic;
+      -212, -197, -180, -161, -141, -120, -97, -74, -49, -24 };
+  private final long stepForPeriod;
   private Instrument instrument;
   private byte[] data;
   private long pos;
@@ -22,15 +22,11 @@ public final class Sound {
   private int lPan;
   private int rPan;
 
-  public Sound(final long magic, final int left, final int right) {
-    this.magic = magic;
+  public Sound(final long stepForPeriod, final int left, final int right) {
+    this.stepForPeriod = stepForPeriod;
     lPan0 = left;
     rPan0 = right;
     synth = new SynthSound();
-    reset();
-  }
-
-  public void reset() {
     lPan = lPan0;
     rPan = rPan0;
     instrument = null;
@@ -91,8 +87,8 @@ public final class Sound {
   }
 
   private void setPeriod(final int freq) {
-    period0 = period = Freq.cropFreq(freq);
-    step = 100 * magic / period;
+    period0 = period = Period.cropPeriod(freq);
+    step = 100 * stepForPeriod / period;
   }
 
   public void modPeriod(final int d) {
@@ -102,11 +98,11 @@ public final class Sound {
   public void toKey(final int key, final int speed, final boolean glissando) {
     if (key > 0 && key < 128) {
       final int ikey = instrument == null ? key : instrument.key(key);
-      final int toPeriod = Freq.getFreqForKey(ikey, fineTune);
+      final int toPeriod = Period.getPeriodForKey(ikey, fineTune);
       final int sign = Tools.sign(toPeriod - period);
       modPeriod(sign * speed);
       if (glissando) // semitone slide
-        setPeriod(Freq.snapFreq(period));
+        setPeriod(Period.snapPeriod(period));
       if (Tools.sign(toPeriod - period) == -sign) // overadjusted
         setPeriod(toPeriod);
     }
@@ -118,12 +114,12 @@ public final class Sound {
     if (key >= 128)
       instrument = null;
     else
-      setPeriod(Freq.getFreqForKey(key, fineTune));
+      setPeriod(Period.getPeriodForKey(key, fineTune));
   }
 
   private void modTempPeriod(final int d) {
-    period = Freq.cropFreq(period + 100 * d);
-    step = 100 * magic / period;
+    period = Period.cropPeriod(period + 100 * d);
+    step = 100 * stepForPeriod / period;
   }
 
   public void restorePeriod() {
@@ -163,7 +159,7 @@ public final class Sound {
   }
 
   public void mix(final int[] lBuf, final int[] rBuf, final int from, final int to,
-      final AudioControl audio, final int trackVolume) {
+      final boolean filter, final int trackVolume) {
     if (instrument == null)
       return;
     int lps = instrument.loopStart;
@@ -177,13 +173,13 @@ public final class Sound {
     for (int i = from; i < to && (pos >>> 16) < end; i++) {
       final int sp = (int)(pos >>> 16);
       int d = data[sp] * 4;
-      if (audio.filter) { // simple filter
+      if (filter) { // simple filter
         final int t = sampleAt(sp + 1, data, end, lps, lpl) * 4;
         final int d1 = (sampleAt(sp - 1, data, end, lps, lpl) * 4 + d * 2 + t);
         final int d2 = (d + 2 * t + sampleAt(sp + 2, data, end, lps, lpl) * 4);
         final int spf = (int)(pos & 65535);
         d = (d1 * (65535 - spf) + d2 * spf) / 65535 / 4;
-      } else if (audio.linear) { // linear resampling
+      } else { // linear resampling
         final int spf = (int)(pos & 65535);
         final int t = sampleAt(sp + 1, data, end, lps, lpl) * 4;
         d = (d * (65535 - spf) + t * spf) / 65535;

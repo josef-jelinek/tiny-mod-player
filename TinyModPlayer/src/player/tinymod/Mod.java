@@ -87,7 +87,9 @@ public final class Mod {
           final int b3 = data.u1();
           final int smp = (b0 & 0xF0 | (b2 & 0xF0) >> 4) - 1;
           final int frq = (b0 << 8 | b1) & 4095;
-          final int key = Freq.getKeyForFreq(frq * 100);
+          final int key = Period.getKeyForPeriod(frq * 100);
+          if (key == 96)
+            Log.d("tinymod", "key:" + key + " period:" + frq * 100);
           int eff = b2 & 15;
           int efx = b3 >> 4;
           int efy = b3 & 15;
@@ -334,7 +336,7 @@ public final class Mod {
     // process expdata
     if (expdata != 0) {
       data.seek(expdata);
-      final int nextMod = data.s4();
+      data.s4(); // next mod
       final int expSmp = data.s4();
       final int expSmps = data.u2();
       final int expSmpSz = data.u2();
@@ -474,6 +476,8 @@ public final class Mod {
     return 0; // unknown conversion
   }
 
+  // TODO remove after completing
+  @SuppressWarnings("unused")
   public static Mod parseAhx(final byte[] file) {
     final BinaryData data = new BinaryData(file);
     final String id = data.string(3);

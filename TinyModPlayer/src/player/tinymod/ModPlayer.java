@@ -1,13 +1,18 @@
 package player.tinymod;
 
-public final class ModPlayer implements Player {
+import android.util.Log;
+
+public final class ModPlayer {
+  private final short[] mixBuffer;
+  private final int[] left;
+  private final int[] right;
+  private final AudioDevice audioDevice;
   private Mod mod;
   private Track[] track;
-  private final long magic;
-  private final int sampleFreq;
-  private boolean active;
-  private boolean loop;
-  private final AudioControl audio = new AudioControl();
+  private final long samplingStepForPeriod;
+  private boolean active = false;
+  private boolean loop = false;
+  private boolean filter;
   private int tpl;
   private int tpb;
   private int bpm;
@@ -23,12 +28,13 @@ public final class ModPlayer implements Player {
   private int blockDelay;
   private int bytesLeft;
 
-  public ModPlayer(final int sampleFreq, final boolean pal) {
-    this.sampleFreq = sampleFreq;
-    audio.reset();
-    active = false;
-    loop = false;
-    magic = Freq.magic(sampleFreq, pal);
+  public ModPlayer(final AudioDevice audioDevice, final boolean pal) {
+    this.audioDevice = audioDevice;
+    samplingStepForPeriod = Period.getSamplingStepForPeriod(audioDevice.getSampleRateInHz(), pal);
+    final int bufferSize = audioDevice.getSampleRateInHz() / 50;
+    mixBuffer = new short[bufferSize * 2];
+    left = new int[bufferSize];
+    right = new int[bufferSize];
   }
 
   public void play(final Mod mod) {
@@ -62,18 +68,25 @@ public final class ModPlayer implements Player {
     loop = state;
   }
 
-  public AudioControl audio() {
-    return audio;
+  public void mix() {
+    for (int i = 0; i < left.length; i++)
+      left[i] = right[i] = 0;
+    process(left, right, left.length);
+    for (int i = 0; i < left.length; i++) {
+      mixBuffer[i * 2] = (short)Tools.crop(left[i], -32768, 32767);
+      mixBuffer[i * 2 + 1] = (short)Tools.crop(right[i], -32768, 32767);
+    }
+    audioDevice.write(mixBuffer);
   }
 
-  public void process(final int[] left, final int[] right, final int size) {
+  private void process(final int[] left, final int[] right, final int size) {
     if (!active)
       return;
     int p = 0;
     int todo = size;
     while (todo > 0) {
       if (bytesLeft == 0) {
-        bytesLeft = sampleFreq / tps;
+        bytesLeft = audioDevice.getSampleRateInHz() / tps;
         if (tick == 0 && blockDelay > 0)
           blockDelay--;
         else if (tick == 0)
@@ -84,7 +97,7 @@ public final class ModPlayer implements Player {
       }
       final int amount = Math.min(bytesLeft, todo);
       for (int i = 0; i < mod.tracks; i++)
-        track[i].mix(left, right, p, p + amount, audio);
+        track[i].mix(left, right, p, p + amount, filter);
       bytesLeft -= amount;
       p += amount;
       todo -= amount;
@@ -92,7 +105,7 @@ public final class ModPlayer implements Player {
   }
 
   private void reset() {
-    audio.filter = mod.filter;
+    filter = mod.filter;
     tpl = mod.tpl;
     tpb = mod.lpb > 0 ? tpl * mod.lpb : mod.tpb;
     bpm = mod.bpm;
@@ -111,19 +124,16 @@ public final class ModPlayer implements Player {
       track = new Track[mod.tracks];
     for (int i = 0; i < mod.tracks; i++) {
       final boolean l = i % 4 == 0 || i % 4 == 3;
-      if (track[i] == null)
-        track[i] = new Track(magic, l ? 192 : 64, l ? 64 : 192);
-      else
-        track[i].reset();
+      track[i] = new Track(samplingStepForPeriod, l ? 192 : 64, l ? 64 : 192);
     }
   }
 
   private void doLine() {
     final Block block = mod.blocks[mod.order[pos]];
     if (line == 0)
-      System.err.println(">> " + pos + "(" + mod.order[pos] + ")");
-    System.err.print("#" + line / 100 % 10 + line / 10 % 10 + line % 10 + "|");
-    System.err.println(block.lineString(line) + "|");
+      Log.d("tinymod", ">> " + pos + "(" + mod.order[pos] + ")");
+    Log.d("tinymod",
+        "#" + line / 100 % 10 + line / 10 % 10 + line % 10 + "|" + block.lineString(line) + "|");
     for (int i = 0; i < block.tracks(line); i++) {
       final Note note = block.note(line, i);
       track[i].doTrack(note); // update sound (volume and pitch)
@@ -136,41 +146,30 @@ public final class ModPlayer implements Player {
   }
 
   private void doTrack(final Note note) {
-    final int efx = note.paramX;
-    final int efy = note.paramY;
-    final int efxy = efx * 16 + efy;
+    final int efxy = note.paramX * 16 + note.paramY;
     switch (note.effect) {
-    case 0x0B: { // jump to block
-      if (efxy == 0)
-        jump(pos + 1, 0);
-      else
-        jump(efxy, 0);
-    }
+    case 0x0B: // jump to block
+      jump(efxy == 0 ? pos + 1 : efxy, 0);
       break;
-    case 0x0D: { // block break (to the specified line) (originally dec - converted to hex)
+    case 0x0D: // block break (to the specified line) (originally dec - converted to hex)
       jump(pos + 1, efxy);
-    }
       break;
-    case 0xE0: { // amiga filter
-      audio.filter = efxy != 0;
-    }
+    case 0xE0: // amiga filter
+      filter = efxy != 0;
       break;
-    case 0xE6: { // block cycle
+    case 0xE6: // block cycle
       cycle(efxy);
-    }
       break;
-    case 0xEE: { // block delay
+    case 0xEE: // block delay
       blockDelay = efxy + 1; // ?
-    }
       break;
-    case 0x0F: { // set tpl / bpm
+    case 0x0F: // set tpl / bpm
       if (efxy <= 32) { // set ticks/line (can be < 32)
         tpl = Math.max(1, efxy); // default 6 ticks/line
         tpb = mod.lpb > 0 ? tpl * mod.lpb : mod.tpb;
       } else
         bpm = efxy; // default 50 tps ~ 125 bpm
       tps = tpb * bpm / 60;
-    }
       break;
     }
   }

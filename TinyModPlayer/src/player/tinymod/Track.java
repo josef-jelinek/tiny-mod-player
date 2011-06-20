@@ -48,13 +48,8 @@ public final class Track {
   private int tremoloIndex;
   private int retrigSpeed;
 
-  public Track(final long magic, final int left, final int right) {
-    sound = new Sound(magic, left, right);
-    reset();
-  }
-
-  public void reset() {
-    sound.reset();
+  public Track(final long stepForPeriod, final int left, final int right) {
+    sound = new Sound(stepForPeriod, left, right);
     nextSample = null;
     nextVolume = -1;
     stopNote = false;
@@ -89,8 +84,8 @@ public final class Track {
   }
 
   public void mix(final int[] lBuf, final int[] rBuf, final int from, final int to,
-      final AudioControl audio) {
-    sound.mix(lBuf, rBuf, from, to, audio, volume * audio.volume / audio.boost);
+      final boolean filter) {
+    sound.mix(lBuf, rBuf, from, to, filter, volume * 8);
   }
 
   public void doTrack(final Note note) {

@@ -9,13 +9,14 @@ public final class Note {
       "E-5", "F-5", "F#5", "G-5", "G#5", "A-5", "A#5", "B-5", "C-6", "C#6", "D-6", "D#6", "E-6",
       "F-6", "F#6", "G-6", "G#6", "A-6", "A#6", "B-6", "C-7", "C#7", "D-7", "D#7", "E-7", "F-7",
       "F#7", "G-7", "G#7", "A-7", "A#7", "B-7", "C-8", "C#8", "D-8", "D#8", "E-8", "F-8", "F#8",
-      "G-8", "G#8", "A-8", "A#8", "B-8", };
+      "G-8", "G#8", "A-8", "A#8", "B-8" };
   public final int key;
   public final Instrument sample;
   public final int effect;
   public final int paramX;
   public final int paramY;
   public final boolean hold;
+  public String string;
 
   public Note(final int key, final Instrument sample, final int effect, final int paramX,
       final int paramY, final boolean hold) {
@@ -29,15 +30,19 @@ public final class Note {
 
   @Override
   public String toString() {
-    String s = key == 0 ? (hold ? " | " : " - ") : (key >= 128 ? " x " : names[key + 1]);
-    s += sample == null ? "  -" : " " + d2(sample.id);
-    if (effect == 0 && paramX == 0 && paramY == 0)
-      return s + "  -  ";
-    return s + " " + h2(effect) + h1(paramX) + h1(paramY);
+    if (string == null) {
+      string = key == 0 ? (hold ? " | " : " - ") : names[key + 1];
+      string += sample == null ? "  -" : " " + d2(sample.id);
+      if (effect == 0 && paramX == 0 && paramY == 0)
+        string += "  -  ";
+      else
+        string += " " + h2(effect) + h1(paramX) + h1(paramY);
+    }
+    return string;
   }
 
   private static char h1(final int x) {
-    return (char)(x < 10 ? '0' + x : 'A' + x - 10);
+    return "0123456789ABCDEF".charAt(x);
   }
 
   private static String d2(final int x) {
