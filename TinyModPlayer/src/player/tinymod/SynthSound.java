@@ -88,7 +88,7 @@ public final class SynthSound {
     return data;
   }
 
-  public boolean synthWf() {
+  public boolean synthWaveForm() {
     return instrument != null && instrument.synthWf(waveform);
   }
 
@@ -97,15 +97,13 @@ public final class SynthSound {
       return false;
     volPos = decay;
     volWait = 0;
-    System.err.println("vol jump to " + volPos);
     return true;
   }
 
-  public void jumpWf(final int pos) {
+  public void jumpWaveForm(final int pos) {
     if (instrument != null) {
       wfPos = pos;
       wfWait = 0;
-      System.err.println("wf jump to " + pos);
     }
   }
 
@@ -160,54 +158,44 @@ public final class SynthSound {
             break;
           }
           switch (cmd) {
-          case 0xF0: { // SPD
+          case 0xF0: // SPD
             volSpeed = instrument.volData[volPos++] & 255;
-          }
             break;
-          case 0xF1: { // WAI
+          case 0xF1: // WAI
             volWait = instrument.volData[volPos++] & 255;
             get = false;
-          }
             break;
-          case 0xF2: { // CHD
+          case 0xF2: // CHD
             volDif = -(instrument.volData[volPos++] & 255);
-          }
             break;
-          case 0xF3: { // CHU
+          case 0xF3: // CHU
             volDif = instrument.volData[volPos++] & 255;
-          }
             break;
-          case 0xF4: { // EN1 - take a waveform as an envelop once
+          case 0xF4: // EN1 - take a waveform as an envelop once
             envWf = instrument.volData[volPos++] & 255;
             envPos = 0;
             envLoop = false;
-          }
             break;
-          case 0xF5: { // EN2 - take a looped waveform as an envelope
+          case 0xF5: // EN2 - take a looped waveform as an envelope
             envWf = instrument.volData[volPos++] & 255;
             envPos = 0;
             envLoop = true;
-          }
             break;
-          case 0xF6: { // EST (RES) - reset envelope (no waveform)
+          case 0xF6: // EST (RES) - reset envelope (no waveform)
             envWf = -1;
-          }
             break;
-          case 0xFA: { // JWS - jump in the waveform table
+          case 0xFA: // JWS - jump in the waveform table
             wfPos = instrument.volData[volPos++] & 255;
             wfWait = 0;
-          }
             break;
-          case 0xFE: { // JMP
+          case 0xFE: // JMP
             volPos = instrument.volData[volPos] & 255;
-          }
             break;
           case 0xFB: // HLT
           case 0xFF: // END
             volPos--;
-          default: {
+          default:
             get = false;
-          }
           }
           cnt++;
         }
@@ -232,69 +220,55 @@ public final class SynthSound {
             break;
           }
           switch (cmd) {
-          case 0xF0: { // SPD
+          case 0xF0: // SPD
             wfSpeed = instrument.wfData[wfPos++] & 255;
-          }
             break;
-          case 0xF1: { // WAI
+          case 0xF1: // WAI
             wfWait = instrument.wfData[wfPos++] & 255;
             get = false;
-          }
             break;
-          case 0xF2: { // CHD
+          case 0xF2: // CHD
             wfDif = instrument.wfData[wfPos++] & 255;
-          }
             break;
-          case 0xF3: { // CHU
+          case 0xF3: // CHU
             wfDif = -(instrument.wfData[wfPos++] & 255);
-          }
             break;
-          case 0xF4: { // VBD
+          case 0xF4: // VBD
             vibDepth = instrument.wfData[wfPos++] & 255;
-          }
             break;
-          case 0xF5: { // VBS
+          case 0xF5: // VBS
             vibSpeed = instrument.wfData[wfPos++] & 255;
-          }
             break;
-          case 0xF6: { // RES
+          case 0xF6: // RES
             wfPeriod = 0;
-          }
             break;
-          case 0xF7: { // VWF
+          case 0xF7: // VWF
             vibWf = instrument.wfData[wfPos++] & 255;
-          }
             break;
-          case 0xFA: { // JVS
+          case 0xFA: // JVS
             volPos = instrument.wfData[wfPos++] & 255;
             volWait = 0;
-          }
             break;
-          case 0xFC: { // ARP
+          case 0xFC: // ARP
             arpeggio = wfPos < instrument.wfData.length && (instrument.wfData[wfPos] & 255) < 128;
             if (arpeggio) {
               arpPos = arpStart = wfPos;
               while (wfPos < instrument.wfData.length && (instrument.wfData[wfPos] & 255) < 128)
                 wfPos++;
             }
-          }
             break;
-          case 0xFD: { // ARE
-          }
+          case 0xFD: // ARE
             break;
-          case 0xFE: { // JMP
+          case 0xFE: // JMP
             wfPos = instrument.wfData[wfPos] & 255;
-          }
             break;
           case 0xFB: // HLT
-          case 0xFF: { // END
+          case 0xFF: // END
             wfPos--;
             get = false;
-          }
             break;
-          default: {
+          default:
             get = false;
-          }
             break;
           }
           cnt++;

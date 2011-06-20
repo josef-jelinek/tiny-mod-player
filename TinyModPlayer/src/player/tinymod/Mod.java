@@ -42,7 +42,7 @@ public final class Mod {
       mod.tracks = (id.charAt(0) - '0') * 10 + id.charAt(1) - '0';
     // FLT8 uses 2 patterns as one; not one 8 track pattern... (numbers in playing sequence should be divided by 2)
     else if (!id.equals("M.K.") && !id.equals("FLT4") && !id.equals("M!K!")) {
-      Tools.log("Mod Loader: Unknown identification '" + id + "' - assuming Noise Tracker");
+      Log.i("tinymod", "Unknown mod id: " + id);
       samples = 15; // assume old-style .MOD (N.T.)
     }
     data.seek(0);
@@ -60,14 +60,9 @@ public final class Mod {
       mod.sample[smp].name(sname);
       mod.sample[smp].volume(vol);
       mod.sample[smp].fineTune(finetune - (finetune & 8) * 2);
-      if (rep + replen > mod.sample[smp].data().length && replen > 2)
-        Tools.log("Bad loop " + rep + "+" + replen + ">" + mod.sample[smp].data().length +
-            " in sample " + (smp + 1));
       mod.sample[smp].loop(rep, replen);
     }
     mod.songLength = data.u1(); // read block length
-    if (mod.songLength > 128)
-      Tools.log("Mod Loader: Mod length " + mod.songLength + " > 128");
     data.u1(); // skip block repeat or 128 etc.
     int numBlocks = 0;
     for (int i = 0; i < 128; i++)
@@ -86,11 +81,9 @@ public final class Mod {
           final int b2 = data.u1();
           final int b3 = data.u1();
           final int smp = (b0 & 0xF0 | (b2 & 0xF0) >> 4) - 1;
-          final int frq = (b0 << 8 | b1) & 4095;
-          final int key = Period.getKeyForPeriod(frq * 100);
-          if (key == 96)
-            Log.d("tinymod", "key:" + key + " period:" + frq * 100);
-          int eff = b2 & 15;
+          final int period = (b0 << 8 | b1) & 0xFFF;
+          final int key = Period.getKeyForPeriod(period * 100);
+          int eff = b2 & 0xF;
           int efx = b3 >> 4;
           int efy = b3 & 15;
           if (eff == 0x0E) { // extended commands
@@ -110,8 +103,6 @@ public final class Mod {
     for (int i = 0; i < mod.sample.length; i++)
       for (int j = 0; j < mod.sample[i].data().length; j++) {
         if (data.isEnd()) {
-          Tools.log("Sample " + i + " out of file - " + (mod.sample[i].data().length - j) +
-              " bytes missing");
           mod.sample[i].trimTo(j);
           break;
         }
@@ -127,9 +118,7 @@ public final class Mod {
     if (!id.equals("MMD0") && !id.equals("MMD1"))
       return null;
     final Mod mod = new Mod(id);
-    final int modlen = data.s4();
-    if (modlen != file.length)
-      Tools.log("MED Loader: length " + modlen + " =/= file length " + file.length);
+    data.s4(); // mod length
     final int song = data.s4(); // MMD0Song
     data.s4(); // reserved
     final int blockarr = data.s4(); // MMD0Block[]
@@ -202,8 +191,6 @@ public final class Mod {
             for (int i = 0; i < length; i++)
               mod.sample[smp].data()[i] = data.s1();
           } else if (type == -1 || type == -2) { // synth or hybrid
-            if (length != 272)
-              Tools.log("MED Loader: synthetic instrument length " + length + " =/= 272");
             data.skip(8); // not used in modules
             final int voltbllen = data.u2();
             final int wftbllen = data.u2();
@@ -258,17 +245,14 @@ public final class Mod {
         }
       }
     data.seek(song);
-    for (int smp = 0; smp < mod.sample.length; smp++) { // MMD0Sample[63] at the start of MMD0Song
+    for (final Instrument element : mod.sample) { // MMD0Sample[63] at the start of MMD0Song
       final int rep = data.w2();
       final int replen = data.w2();
       data.skip(2); // 1midich 1midipreset
       final int svol = crop(data.u1(), 0, 64);
       final int strans = data.s1();
-      final Instrument instr = mod.sample[smp];
+      final Instrument instr = element;
       if (instr != null) {
-        if (rep + replen > instr.data().length)
-          Tools.log("Bad loop " + rep + "+" + replen + ">" + instr.data().length + " in sample " +
-              (smp + 1));
         instr.loop(rep, replen);
         instr.volume(svol);
         if (!mixMode || instr instanceof SynthInstrument && !((SynthInstrument)instr).hybrid())

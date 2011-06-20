@@ -70,7 +70,7 @@ public final class Sound {
   }
 
   public void synthWf(final int pos) {
-    synth.jumpWf(pos);
+    synth.jumpWaveForm(pos);
   }
 
   public void playFrom(final long x) {
@@ -164,7 +164,7 @@ public final class Sound {
       return;
     int lps = instrument.loopStart;
     int lpl = instrument.loopLength;
-    if (synth.synthWf()) {
+    if (synth.synthWaveForm()) {
       lps = 0;
       lpl = data.length;
     }

@@ -113,7 +113,7 @@ public final class Track {
         playNote(); // not portamente to note or delay note or pitch change -> play note
     }
     switch (eff) {
-    case 0x00: { // arpeggio - chord simulation
+    case 0x00: // arpeggio - chord simulation
       if (efxy != 0) {
         if (note.key > 0)
           arpeggioNotes[0] = note.key;
@@ -124,88 +124,74 @@ public final class Track {
           arpeggioNotes[2] = arpeggioNotes[0] + efy;
         }
       }
-    }
       break;
-    case 0x01: { // portamente up
+    case 0x01: // portamente up
       effect = PORTA_UP;
-    }
       break;
-    case 0x02: { // portamente down
+    case 0x02: // portamente down
       effect = PORTA_DOWN;
-    }
       break;
-    case 0x03: { // portamente to note
+    case 0x03: // portamente to note
       effect = PORTA;
       if (efxy != 0)
         portaSpeed = efxy;
       if (note.key > 0 && note.key < 128)
         portaKey = note.key;
-    }
       break;
     case 0x04: // shallower vibrato - oscilate pitch (half change)
-    case 0x14: { // deeper vibrato (from MED and old N.T.)
+    case 0x14: // deeper vibrato (from MED and old N.T.)
       effect = VIBRATO;
       if (efx != 0)
         vibratoSpeed = efx;
       if (efy != 0)
         vibratoDepth = efy * (eff == 0x4 ? 2 : 4);
-    }
       break;
-    case 0x05: { // portamente to note + volume slide (param. is for volume)
+    case 0x05: // portamente to note + volume slide (param. is for volume)
       effect = PORTA_VOLUME_SLIDE;
       if (note.key > 0 && note.key < 128)
         portaKey = note.key;
-    }
       break;
-    case 0x06: { // vibrato + volume slide (param. is for volume)
+    case 0x06: // vibrato + volume slide (param. is for volume)
       effect = VIBRATO_VOLUME_SLIDE;
-    }
       break;
-    case 0x07: { // tremolo - oscilate volume
+    case 0x07: // tremolo - oscilate volume
       effect = TREMOLO;
       if (efx != 0)
         tremoloSpeed = efx;
       if (efy != 0)
         tremoloDepth = 4 * efy;
-    }
       break;
-    case 0x08: { // pan
+    case 0x08: // pan
       if (efxy == 0xA4) // surround
         sound.pan(-128, 128);
       else {
         final int pan = Tools.crop(efxy, 0, 128) * 2;
         sound.pan(256 - pan, pan);
       }
-    }
       break;
-    case 0x09: { // sample offset - start skip
+    case 0x09: // sample offset - start skip
       sound.playFrom(efxy * 256);
-    }
       break;
-    case 0x0A: { // volume slide
+    case 0x0A: // volume slide
       effect = VOLUME_SLIDE;
-    }
       break;
     // G 0x0B - jump to order
-    case 0x0C: { // set volume
+    case 0x0C: // set volume
       if (efxy >= 128) // changing instrument default volume (from MED)
         sound.instrumentVolume(efxy - 128);
       volume(efxy);
-    }
       break;
     // G 0x0D - pattern break (to specified row)
     // G 0x0F - set speed / bpm
-    case 0x18: { // decay + hold (from MED)
+    case 0x18: // decay + hold (from MED)
       decay = nextDecay = efx;
       hold = nextHold = efy;
       fade = 0;
-    }
       break;
-    case 0x1E: { // set synth waveform position (from MED)
+    case 0x1E: // set synth waveform position (from MED)
       sound.synthWf(efxy);
-    }
       break;
-    case 0x1F: { // delay + retrigger note (from MED)
+    case 0x1F: // delay + retrigger note (from MED)
       if (efxy != 0) {
         if (efx == 0)
           effect = RETRIG_NOTE;
@@ -216,77 +202,63 @@ public final class Track {
         delay = efx;
         effectCounter = retrigSpeed = efy;
       }
-    }
       break;
     // G 0xE0 - amiga filter
-    case 0xE1: { // fine portamente up
+    case 0xE1: // fine portamente up
       sound.modPeriod(-efxy);
-    }
       break;
-    case 0xE2: { // fine portamente down
+    case 0xE2: // fine portamente down
       sound.modPeriod(efxy);
-    }
       break;
-    case 0xE3: { // glissando - portamente in semitones / smooth
+    case 0xE3: // glissando - portamente in semitones / smooth
       glissando = efxy != 0;
-    }
       break;
-    case 0xE4: { // vibrato waveform
+    case 0xE4: // vibrato waveform
       vibratoWaveform = efy;
       if (efxy < 4) // retrigger
         vibratoIndex = 0;
-    }
       break;
-    case 0xE5: { // set finetune
+    case 0xE5: // set finetune
       sound.fineTune(efxy);
-    }
       break;
     // G 0xE6: // pattern loop
-    case 0xE7: { // tremolo waveform
+    case 0xE7: // tremolo waveform
       tremoloWaveform = efxy;
       if (efxy < 4) // retrigger
         tremoloIndex = 0;
-    }
       break;
-    case 0xE8: { // 16 position panning
+    case 0xE8: // 16 position panning
       final int pan = efxy * 256 / 15;
       sound.pan(256 - pan, pan);
-    }
-    case 0xE9: { // retrigger note
+    case 0xE9: // retrigger note
       if (efxy != 0) {
         effect = RETRIG_NOTE;
         effectCounter = retrigSpeed = efxy;
         hold = nextHold;
         fade = 0;
       }
-    }
       break;
-    case 0xEA: { // fine volume slide up
+    case 0xEA: // fine volume slide up
       volume(volume + efxy);
-    }
       break;
-    case 0xEB: { // fine volume slide down
+    case 0xEB: // fine volume slide down
       volume(volume - efxy);
-    }
       break;
-    case 0xEC: { // cut note
+    case 0xEC: // cut note
       effect = CUT_NOTE;
       effectCounter = efxy;
-    }
       break;
-    case 0xED: { // delay note
+    case 0xED: // delay note
       if (efxy != 0) {
         effect = DELAY_NOTE;
         delay = efxy;
       }
-    }
       break;
     // G 0xEE - pattern delay
     // X 0xEF - invert loop - only a fuzzy idea about this
-    case 0xFD: { // change frequency (from MED)
+    case 0xFD: // change frequency (from MED)
       if (note.key > 0 && note.key < 128)
         sound.setKeyPeriod(note.key);
-    }
       break;
     }
   }
