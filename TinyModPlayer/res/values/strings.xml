@@ -2,4 +2,6 @@
 <resources>
   <string
     name="app_name">Tiny Mod</string>
+  <string
+    name="foreground_service_started">Playing</string>
 </resources>

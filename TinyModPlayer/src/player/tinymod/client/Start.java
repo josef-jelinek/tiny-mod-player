@@ -21,7 +21,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 public class Start extends ListActivity {
-  private static final String MEDIA_PATH = "/sdcard/Mods";
+  private static final String MEDIA_PATH = "/sdcard";//Mods";
   private final List<String> songs = new ArrayList<String>();
   private final static ModFilter filter = new ModFilter();
   private TinyModServiceInterface tmsInterface;
@@ -46,11 +46,11 @@ public class Start extends ListActivity {
   public void updateSongList() {
     try {
       final List<File> fileList = listSongFiles(new File(MEDIA_PATH));
-      tmsInterface.clearPlaylist();
+      tmsInterface.clear();
       if (fileList != null) {
         for (final File file : fileList) {
           songs.add(file.getName());
-          tmsInterface.addSongPlaylist(file.getAbsolutePath());
+          tmsInterface.add(file.getAbsolutePath());
         }
         final ArrayAdapter<String> songList =
             new ArrayAdapter<String>(this, R.layout.mod_item, songs);
@@ -71,7 +71,7 @@ public class Start extends ListActivity {
   @Override
   protected void onListItemClick(final ListView l, final View v, final int position, final long id) {
     try {
-      tmsInterface.playFile(position);
+      tmsInterface.play(position);
     } catch (final DeadObjectException e) {
       Log.e(getString(R.string.app_name), e.getMessage());
     } catch (final RemoteException e) {

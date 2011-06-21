@@ -9,7 +9,8 @@ import player.tinymod.AndroidAudioDevice;
 import player.tinymod.Mod;
 import player.tinymod.ModPlayer;
 import player.tinymod.R;
-import android.app.NotificationManager;
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.media.MediaPlayer;
@@ -22,21 +23,32 @@ public class TinyModService extends Service {
   private final MediaPlayer mp = new MediaPlayer();
   private final List<String> songs = new ArrayList<String>();
   private int currentPosition;
-  private NotificationManager nm;
-  private static final int NOTIFY_ID = R.layout.mod_list;
   private final ModPlayer player = new ModPlayer(new AndroidAudioDevice(44100), true);
 
   @Override
   public void onCreate() {
     super.onCreate();
-    nm = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
   }
 
   @Override
   public void onDestroy() {
+    stopForeground();
     mp.stop();
     mp.release();
-    nm.cancel(NOTIFY_ID);
+  }
+
+  private void startForeground() {
+    final CharSequence text = getText(R.string.foreground_service_started);
+    final Notification notification =
+        new Notification(R.drawable.notify_icon, text, System.currentTimeMillis());
+    final PendingIntent contentIntent =
+        PendingIntent.getActivity(this, 0, new Intent(this, Start.class), 0);
+    notification.setLatestEventInfo(this, getText(R.string.app_name), text, contentIntent);
+    startForeground(R.string.foreground_service_started, notification);
+  }
+
+  private void stopForeground() {
+    stopForeground(true);
   }
 
   private void playSong(final String filePath) {
@@ -60,8 +72,6 @@ public class TinyModService extends Service {
       else if (file.getName().toLowerCase().endsWith(".mod"))
         playLoop(Mod.parseMod(data));
       else if (file.getName().toLowerCase().endsWith(".mp3")) {
-        //Notification notification = new Notification(R.drawable.play, file, null, file, null);
-        //nm.notify(NOTIFY_ID, notification);
         mp.reset();
         mp.setDataSource(filePath);
         mp.prepare();
@@ -88,23 +98,24 @@ public class TinyModService extends Service {
       player.play(mod);
       playThread = new Thread(new Runnable() {
         public void run() {
+          Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
           while (player.playing())
             if (Thread.interrupted())
               player.stop();
             else
               player.mix();
+          stopForeground();
         }
       });
+      startForeground();
       playThread.start();
     } catch (final InterruptedException e) {}
   }
 
   private void nextSong() {
-    // Check if last song or not
-    if (++currentPosition >= songs.size()) {
+    if (++currentPosition >= songs.size())
       currentPosition = 0;
-      nm.cancel(NOTIFY_ID);
-    } else
+    else
       playSong(songs.get(currentPosition));
   }
 
@@ -116,7 +127,7 @@ public class TinyModService extends Service {
   }
 
   private final TinyModServiceInterface.Stub mBinder = new TinyModServiceInterface.Stub() {
-    public void playFile(final int position) throws DeadObjectException {
+    public void play(final int position) throws DeadObjectException {
       try {
         currentPosition = position;
         playSong(songs.get(position));
@@ -125,31 +136,29 @@ public class TinyModService extends Service {
       }
     }
 
-    public void addSongPlaylist(final String song) throws DeadObjectException {
+    public void add(final String song) throws DeadObjectException {
       songs.add(song);
     }
 
-    public void clearPlaylist() throws DeadObjectException {
+    public void clear() throws DeadObjectException {
       songs.clear();
     }
 
-    public void skipBack() throws DeadObjectException {
+    public void backward() throws DeadObjectException {
       prevSong();
     }
 
-    public void skipForward() throws DeadObjectException {
+    public void forward() throws DeadObjectException {
       nextSong();
     }
 
     public void pause() throws DeadObjectException {
-      //Notification notification = new Notification(R.drawable.pause, null, null, null, null);
-      //nm.notify(NOTIFY_ID, notification);
       mp.pause();
     }
 
     public void stop() throws DeadObjectException {
-      nm.cancel(NOTIFY_ID);
       mp.stop();
+      stopForeground();
     }
   };
 
