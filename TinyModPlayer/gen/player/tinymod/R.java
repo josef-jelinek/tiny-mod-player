@@ -14,9 +14,6 @@ public final class R {
         public static final int icon=0x7f020000;
         public static final int notify_icon=0x7f020001;
     }
-    public static final class id {
-        public static final int text1=0x7f050000;
-    }
     public static final class layout {
         public static final int mod_item=0x7f030000;
         public static final int mod_list=0x7f030001;

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string
+    name="app_name">Tiny Mod</string>
+  <string
+    name="foreground_service_started">Service is in the foreground</string>
+  <string
+    name="foreground_service_label">Sample Foreground Service</string>
+</resources>

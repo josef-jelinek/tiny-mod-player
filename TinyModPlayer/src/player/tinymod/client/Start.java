@@ -21,45 +21,42 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 public class Start extends ListActivity {
-  private static final String MEDIA_PATH = "/sdcard";//Mods";
+  private static final String MEDIA_PATH = "/sdcard/Mods";
   private final List<String> songs = new ArrayList<String>();
   private final static ModFilter filter = new ModFilter();
-  private TinyModServiceInterface tmsInterface;
-  private final ServiceConnection mConnection = new ServiceConnection() {
+  private TinyModServiceInterface serviceInterface;
+  private final ServiceConnection serviceConnection = new ServiceConnection() {
     public void onServiceConnected(final ComponentName className, final IBinder service) {
-      tmsInterface = TinyModServiceInterface.Stub.asInterface(service);
+      serviceInterface = TinyModServiceInterface.Stub.asInterface(service);
       updateSongList();
     }
 
     public void onServiceDisconnected(final ComponentName className) {
-      tmsInterface = null;
+      serviceInterface = null;
     }
   };
 
   @Override
-  public void onCreate(final Bundle icicle) {
-    super.onCreate(icicle);
+  public void onCreate(final Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
     setContentView(R.layout.mod_list);
-    bindService(new Intent(Start.this, TinyModService.class), mConnection, Context.BIND_AUTO_CREATE);
+    bindService(new Intent(Start.this, TinyModService.class), serviceConnection,
+        Context.BIND_AUTO_CREATE);
   }
 
   public void updateSongList() {
     try {
       final List<File> fileList = listSongFiles(new File(MEDIA_PATH));
-      tmsInterface.clear();
-      if (fileList != null) {
-        for (final File file : fileList) {
-          songs.add(file.getName());
-          tmsInterface.add(file.getAbsolutePath());
-        }
-        final ArrayAdapter<String> songList =
-            new ArrayAdapter<String>(this, R.layout.mod_item, songs);
-        setListAdapter(songList);
+      serviceInterface.clear();
+      for (final File file : fileList) {
+        songs.add(file.getName());
+        serviceInterface.add(file.getAbsolutePath());
       }
+      setListAdapter(new ArrayAdapter<String>(this, R.layout.mod_item, songs));
     } catch (final DeadObjectException e) {
-      Log.e(getString(R.string.app_name), e.getMessage());
+      Log.e("tinymod", e.getMessage(), e);
     } catch (final RemoteException e) {
-      Log.e(getString(R.string.app_name), e.getMessage());
+      Log.e("tinymod", e.getMessage(), e);
     }
   }
 
@@ -71,7 +68,7 @@ public class Start extends ListActivity {
   @Override
   protected void onListItemClick(final ListView l, final View v, final int position, final long id) {
     try {
-      tmsInterface.play(position);
+      serviceInterface.play(position);
     } catch (final DeadObjectException e) {
       Log.e(getString(R.string.app_name), e.getMessage());
     } catch (final RemoteException e) {

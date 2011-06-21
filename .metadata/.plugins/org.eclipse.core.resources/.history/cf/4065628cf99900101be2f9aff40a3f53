@@ -1,0 +1,7 @@
+package player.tinymod;
+
+public final class AndroidAudioDevice implements AudioDevice {
+  public void write(short[] samples) {
+    // TODO Auto-generated method stub
+  }
+}

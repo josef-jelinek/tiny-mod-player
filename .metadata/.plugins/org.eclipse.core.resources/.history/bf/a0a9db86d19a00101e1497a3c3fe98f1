@@ -1,0 +1,5 @@
+package player.tinymod;
+
+public interface AudioDevice {
+  public void write(final short[] samples);
+}

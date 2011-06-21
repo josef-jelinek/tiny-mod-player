@@ -1,0 +1,5 @@
+package player.tinymod;
+
+public final class AudioControl {
+  public boolean linear = false;
+}

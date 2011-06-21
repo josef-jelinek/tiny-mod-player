@@ -1,0 +1,4 @@
+INDEX VERSION 1.126+C:\Projects\josef-jelinek\tiny-mod-player\.metadata\.plugins\org.eclipse.jdt.core
+1322344347.index
+2870311659.index
+2099762920.index

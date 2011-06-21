@@ -1,0 +1,151 @@
+package player.tinymod;
+
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioTrack;
+
+final class AndroidAudioDevice implements AudioDevice {
+  final AudioTrack track;
+
+  public AndroidAudioDevice(final int sampleRateInHz) {
+    final int minSize =
+        AudioTrack.getMinBufferSize(sampleRateInHz, AudioFormat.CHANNEL_OUT_STEREO,
+            AudioFormat.ENCODING_PCM_16BIT);
+    track =
+        new AudioTrack(AudioManager.STREAM_MUSIC, sampleRateInHz, AudioFormat.CHANNEL_OUT_STEREO,
+            AudioFormat.ENCODING_PCM_16BIT, minSize, AudioTrack.MODE_STREAM);
+    track.play();
+  }
+
+  public void write(final short[] samples) {
+    track.write(samples, 0, samples.length);
+  }
+}
+
+final class Voice {
+  public Sample sample = null;
+  public int done = 0;
+  public int todo = 0;
+}
+
+public final class Mixer {
+  private final int volume = 64; // main sample volume 0..64 (64)
+  private final int boost = 2; // main sample boost
+  private int freq;
+  private static final int BUF = 17640; // 0.1s for 44100Hz
+  private final byte[] buffer = new byte[BUF];
+  private final int[] left = new int[BUF / 4];
+  private final int[] right = new int[BUF / 4];
+  private AudioTrack line;
+  private final Sample[] queue = new Sample[16];
+  private int inQueue = 0;
+  private final Voice[] voices = new Voice[16];
+  private int inVoices = 0;
+  private final ModPlayer player;
+
+  public Mixer(final ModPlayer player, final int sampleRateInHz) {
+    this.player = player;
+    for (int i = 0; i < voices.length; i++)
+      voices[i] = new Voice();
+  }
+
+  public boolean init(final int freq) {
+    this.freq = freq;
+    final AudioFormat format = new AudioFormat(freq, 16, 2, true, true);
+    final DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
+    try {
+      line = (SourceDataLine)AudioSystem.getLine(info);
+      line.open(format, BUF);
+    } catch (final LineUnavailableException e) {
+      Tools.log("Audio: " + e.getMessage());
+      return false;
+    }
+    line.start();
+    return true;
+  }
+
+  public void mix() {
+    int avail = line.available();
+    while (avail >= BUF / 10) {
+      for (int i = 0; i < avail / 4; i++)
+        left[i] = right[i] = 0;
+      if (player != null)
+        player.process(left, right, avail / 4);
+      mixVoices(avail / 4);
+      for (int i = 0; i < avail / 4; i++) {
+        final int l = Tools.crop(left[i], -32768, 32767);
+        final int r = Tools.crop(right[i], -32768, 32767);
+        buffer[i * 4] = (byte)(l >> 8);
+        buffer[i * 4 + 1] = (byte)(l & 255);
+        buffer[i * 4 + 2] = (byte)(r >> 8);
+        buffer[i * 4 + 3] = (byte)(r & 255);
+      }
+      line.write(buffer, 0, avail);
+      avail = line.available();
+    }
+  }
+
+  private void mixVoices(final int length) {
+    for (int i = 0; i < inVoices; i++) {
+      final Voice voice = voices[i];
+      final int len = Math.min(voice.todo, length);
+      mixVoice(voice, 0, len);
+      if (voice.todo == 0)
+        if (inQueue <= 1 || voice.sample != queue[0]) {
+          remVoiceAt(i);
+          if (inQueue > 0 && voice.sample == queue[0])
+            remSample();
+        } else { // continue with a queued sample
+          remSample();
+          playSampleIn(queue[0], voice);
+          mixVoice(voice, len, length);
+        }
+    }
+  }
+
+  private void mixVoice(final Voice voice, final int from, final int to) {
+    final int lv = voice.sample.leftVolume * volume;
+    final int rv = voice.sample.rightVolume * volume;
+    for (int i = from; i < to; i++) {
+      left[i] += lv * voice.sample.data[voice.done] * 256 / (4096 * boost);
+      right[i] += rv * voice.sample.data[voice.done] * 256 / (4096 * boost);
+      voice.done++;
+      voice.todo--;
+    }
+  }
+
+  public boolean addSample(final Sample sample) {
+    if (inQueue >= queue.length)
+      return false;
+    if (inQueue == 0)
+      playSample(sample);
+    queue[inQueue++] = sample;
+    return true;
+  }
+
+  public void playSample(final Sample sample) {
+    if (inVoices >= voices.length)
+      remVoiceAt(0);
+    playSampleIn(sample, voices[inVoices++]);
+  }
+
+  private void playSampleIn(final Sample sample, final Voice voice) {
+    voice.done = 0;
+    voice.todo = sample.data.length;
+    voice.sample = sample;
+  }
+
+  private void remSample() {
+    inQueue--;
+    for (int i = 0; i < inQueue; i++)
+      queue[i] = queue[i + 1];
+    queue[inQueue] = null;
+  }
+
+  private void remVoiceAt(final int pos) {
+    inVoices--;
+    for (int i = pos; i < inVoices; i++)
+      voices[i] = voices[i + 1];
+    voices[inVoices].sample = null;
+  }
+}

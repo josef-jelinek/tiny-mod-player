@@ -1,0 +1,27 @@
+package player.tinymod;
+
+public final class Mixer {
+  private static final int BUF = 44100 / 10; // samples for 0.1s
+  private final short[] buffer = new short[BUF * 2];
+  private final int[] left = new int[BUF];
+  private final int[] right = new int[BUF];
+  private final AudioDevice audio;
+  private final ModPlayer player;
+
+  public Mixer(final ModPlayer player, final AudioDevice audio) {
+    this.player = player;
+    this.audio = audio;
+  }
+
+  public void mix() {
+    for (int i = 0; i < BUF; i++)
+      left[i] = right[i] = 0;
+    if (player != null)
+      player.process(left, right, BUF);
+    for (int i = 0; i < BUF; i++) {
+      buffer[i * 2] = (short)Tools.crop(left[i], -32768, 32767);
+      buffer[i * 2 + 1] = (short)Tools.crop(right[i], -32768, 32767);
+    }
+    audio.write(buffer);
+  }
+}

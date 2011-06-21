@@ -37,8 +37,8 @@ public class TinyModService extends Service {
     mp.release();
   }
 
-  private void startForeground() {
-    final CharSequence text = getText(R.string.foreground_service_started);
+  private void startForeground(final String name) {
+    final CharSequence text = getText(R.string.foreground_service_started) + " " + name;
     final Notification notification =
         new Notification(R.drawable.notify_icon, text, System.currentTimeMillis());
     final PendingIntent contentIntent =
@@ -52,7 +52,7 @@ public class TinyModService extends Service {
   }
 
   private void playSong(final String filePath) {
-    final File file = new java.io.File(filePath);
+    final File file = new File(filePath);
     final byte[] data = new byte[(int)file.length()];
     try {
       final FileInputStream in = new FileInputStream(file);
@@ -68,9 +68,9 @@ public class TinyModService extends Service {
     }
     try {
       if (file.getName().toLowerCase().endsWith(".med"))
-        playLoop(Mod.parseMed(data));
+        playLoop(Mod.parseMed(data), file.getName());
       else if (file.getName().toLowerCase().endsWith(".mod"))
-        playLoop(Mod.parseMod(data));
+        playLoop(Mod.parseMod(data), file.getName());
       else if (file.getName().toLowerCase().endsWith(".mp3")) {
         mp.reset();
         mp.setDataSource(filePath);
@@ -89,7 +89,7 @@ public class TinyModService extends Service {
 
   private Thread playThread = null;
 
-  private synchronized void playLoop(final Mod mod) {
+  private synchronized void playLoop(final Mod mod, final String name) {
     try {
       if (playThread != null && playThread.isAlive()) {
         playThread.interrupt();
@@ -107,7 +107,7 @@ public class TinyModService extends Service {
           stopForeground();
         }
       });
-      startForeground();
+      startForeground(name);
       playThread.start();
     } catch (final InterruptedException e) {}
   }
@@ -132,7 +132,7 @@ public class TinyModService extends Service {
         currentPosition = position;
         playSong(songs.get(position));
       } catch (final IndexOutOfBoundsException e) {
-        Log.e(getString(R.string.app_name), e.getMessage());
+        Log.e("tinymod", e.getMessage(), e);
       }
     }
 
