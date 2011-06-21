@@ -13,6 +13,8 @@ public interface TinyModServiceInterface extends IInterface {
 
   public void play(int position) throws RemoteException;
 
+  public void play() throws RemoteException;
+
   public void pause() throws RemoteException;
 
   public void stop() throws RemoteException;
@@ -25,11 +27,12 @@ public interface TinyModServiceInterface extends IInterface {
     private static final String DESCRIPTOR = "player.tinymod.client.TinyModServiceInterface";
     private static final int TRANSACTION_clear = IBinder.FIRST_CALL_TRANSACTION;
     private static final int TRANSACTION_add = IBinder.FIRST_CALL_TRANSACTION + 1;
-    private static final int TRANSACTION_play = IBinder.FIRST_CALL_TRANSACTION + 2;
-    private static final int TRANSACTION_pause = IBinder.FIRST_CALL_TRANSACTION + 3;
-    private static final int TRANSACTION_stop = IBinder.FIRST_CALL_TRANSACTION + 4;
-    private static final int TRANSACTION_forward = IBinder.FIRST_CALL_TRANSACTION + 5;
-    private static final int TRANSACTION_backward = IBinder.FIRST_CALL_TRANSACTION + 6;
+    private static final int TRANSACTION_play0 = IBinder.FIRST_CALL_TRANSACTION + 2;
+    private static final int TRANSACTION_play1 = IBinder.FIRST_CALL_TRANSACTION + 3;
+    private static final int TRANSACTION_pause = IBinder.FIRST_CALL_TRANSACTION + 4;
+    private static final int TRANSACTION_stop = IBinder.FIRST_CALL_TRANSACTION + 5;
+    private static final int TRANSACTION_forward = IBinder.FIRST_CALL_TRANSACTION + 6;
+    private static final int TRANSACTION_backward = IBinder.FIRST_CALL_TRANSACTION + 7;
 
     public Stub() {
       this.attachInterface(this, DESCRIPTOR);
@@ -63,7 +66,11 @@ public interface TinyModServiceInterface extends IInterface {
         data.enforceInterface(DESCRIPTOR);
         add(data.readString());
         return finishReply(reply);
-      case TRANSACTION_play:
+      case TRANSACTION_play0:
+        data.enforceInterface(DESCRIPTOR);
+        play();
+        return finishReply(reply);
+      case TRANSACTION_play1:
         data.enforceInterface(DESCRIPTOR);
         play(data.readInt());
         return finishReply(reply);
@@ -111,8 +118,12 @@ public interface TinyModServiceInterface extends IInterface {
         transact(TRANSACTION_add, song);
       }
 
+      public void play() throws RemoteException {
+        transact(TRANSACTION_play0);
+      }
+
       public void play(final int position) throws RemoteException {
-        transact(TRANSACTION_play, position);
+        transact(TRANSACTION_play1, position);
       }
 
       public void pause() throws RemoteException {

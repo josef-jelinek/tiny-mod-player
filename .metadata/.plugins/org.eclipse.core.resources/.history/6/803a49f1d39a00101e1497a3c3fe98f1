@@ -1,7 +1,0 @@
-package player.tinymod;
-
-public final class AudioControl {
-  public boolean linear = false;
-  public int volume = 64;
-  public int boost = 4;
-}

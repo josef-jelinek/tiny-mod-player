@@ -90,25 +90,32 @@ public class TinyModService extends Service {
   private Thread playThread = null;
 
   private synchronized void playLoop(final Mod mod, final String name) {
-    try {
-      if (playThread != null && playThread.isAlive()) {
-        playThread.interrupt();
-        playThread.join();
-      }
-      player.play(mod);
-      playThread = new Thread(new Runnable() {
-        public void run() {
-          Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+    stopLoop();
+    player.play(mod);
+    playThread = new Thread(new Runnable() {
+      public void run() {
+        try {
+          startForeground(name);
           while (player.playing())
             if (Thread.interrupted())
               player.stop();
             else
               player.mix();
+        } finally {
           stopForeground();
         }
-      });
-      startForeground(name);
-      playThread.start();
+      }
+    });
+    playThread.setPriority(Thread.MAX_PRIORITY);
+    playThread.start();
+  }
+
+  private void stopLoop() {
+    try {
+      if (playThread != null && playThread.isAlive()) {
+        playThread.interrupt();
+        playThread.join();
+      }
     } catch (final InterruptedException e) {}
   }
 
@@ -128,9 +135,13 @@ public class TinyModService extends Service {
 
   private final TinyModServiceInterface.Stub mBinder = new TinyModServiceInterface.Stub() {
     public void play(final int position) throws DeadObjectException {
+      currentPosition = position;
+      play();
+    }
+
+    public void play() throws DeadObjectException {
       try {
-        currentPosition = position;
-        playSong(songs.get(position));
+        playSong(songs.get(currentPosition));
       } catch (final IndexOutOfBoundsException e) {
         Log.e("tinymod", e.getMessage(), e);
       }
@@ -158,7 +169,7 @@ public class TinyModService extends Service {
 
     public void stop() throws DeadObjectException {
       mp.stop();
-      stopForeground();
+      stopLoop();
     }
   };
 

@@ -18,6 +18,7 @@ import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 
 public class Start extends ListActivity {
@@ -42,6 +43,26 @@ public class Start extends ListActivity {
     setContentView(R.layout.mod_list);
     bindService(new Intent(Start.this, TinyModService.class), serviceConnection,
         Context.BIND_AUTO_CREATE);
+    ((Button)findViewById(R.id.play)).setOnClickListener(new View.OnClickListener() {
+      public void onClick(final View v) {
+        if (serviceInterface != null)
+          try {
+            serviceInterface.play();
+          } catch (final RemoteException e) {
+            Log.w("tinymod", e.getMessage(), e);
+          }
+      }
+    });
+    ((Button)findViewById(R.id.stop)).setOnClickListener(new View.OnClickListener() {
+      public void onClick(final View v) {
+        if (serviceInterface != null)
+          try {
+            serviceInterface.stop();
+          } catch (final RemoteException e) {
+            Log.w("tinymod", e.getMessage(), e);
+          }
+      }
+    });
   }
 
   public void updateSongList() {

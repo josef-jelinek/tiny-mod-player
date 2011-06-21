@@ -4,4 +4,8 @@
     name="app_name">Tiny Mod</string>
   <string
     name="foreground_service_started">Playing</string>
+  <string
+    name="button_play">Play</string>
+  <string
+    name="button_stop">Stop</string>
 </resources>

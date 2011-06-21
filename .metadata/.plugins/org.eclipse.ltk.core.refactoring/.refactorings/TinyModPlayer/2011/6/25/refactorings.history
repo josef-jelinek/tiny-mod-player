@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<session version="1.0">
-<refactoring comment="Extract method &apos;private void playLoop()&apos; from &apos;player.tinymod.client.TinyModService.playSong()&apos; to &apos;player.tinymod.client.TinyModService&apos;&#x0D;&#x0A;- Original project: &apos;TinyModPlayer&apos;&#x0D;&#x0A;- Method name: &apos;playLoop&apos;&#x0D;&#x0A;- Destination type: &apos;player.tinymod.client.TinyModService&apos;&#x0D;&#x0A;- Declared visibility: &apos;private&apos;" comments="false" description="Extract method &apos;playLoop&apos;" destination="0" exceptions="false" flags="786434" id="org.eclipse.jdt.ui.extract.method" input="/src&lt;player.tinymod.client{TinyModService.java" name="playLoop" replace="false" selection="2649 260" stamp="1308439986039" version="1.0" visibility="2"/>
-</session>
