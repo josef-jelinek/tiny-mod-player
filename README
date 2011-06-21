@@ -1,1 +1,15 @@
-Minimal Amiga Mod Player for Android in Java
+** Minimal Amiga Mod Player for Android in Java **
+
+
+* Supported *
+
+.MOD - Classic (NoiseTracker, SoundTracker, ProTracker, ...) mods including
+extended multichannel (4+) formats
+
+.MED - MMD0 and MMD1
+
+.MP3 - experimental, using android native support (to easy to omit)
+
+* To do *
+
+.XM, .S3M, .IT, .AHX (.THX) support
