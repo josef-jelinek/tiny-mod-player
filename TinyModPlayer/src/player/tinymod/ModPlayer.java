@@ -1,7 +1,5 @@
 package player.tinymod;
 
-import android.util.Log;
-
 public final class ModPlayer {
   private final short[] mixBuffer;
   private final int[] left;
@@ -11,7 +9,8 @@ public final class ModPlayer {
   private Track[] track;
   private final long samplingStepForPeriod;
   private boolean active = false;
-  private boolean loop = false;
+  private boolean paused = false;
+  private final boolean loop = false;
   private boolean filter;
   private int tpl;
   private int tpb;
@@ -37,38 +36,38 @@ public final class ModPlayer {
     right = new int[bufferSize];
   }
 
-  public void play(final Mod mod) {
+  public synchronized void play(final Mod mod) {
+    if (!active) {
+      this.mod = mod;
+      reset();
+      active = true;
+      paused = false;
+    }
+  }
+
+  public synchronized void stop() {
     active = false;
-    this.mod = mod;
-    reset();
-    active = true;
   }
 
-  public void stop() {
-    active = false;
-    reset();
+  public void pause() {
+    paused = true;
   }
 
-  public void pause(final boolean state) {
-    active = state;
+  public void resume() {
+    paused = false;
   }
 
-  public void skip(final int pos) {
-    jump = true;
-    jumpPos = pos;
-    jumpLine = 0;
-    nextPos();
-  }
-
-  public boolean playing() {
+  public boolean isActive() {
     return active;
   }
 
-  public void loop(final boolean state) {
-    loop = state;
+  public boolean isPaused() {
+    return paused;
   }
 
   public void mix() {
+    if (!active || paused)
+      return;
     for (int i = 0; i < left.length; i++)
       left[i] = right[i] = 0;
     process(left, right, left.length);
@@ -80,8 +79,6 @@ public final class ModPlayer {
   }
 
   private void process(final int[] left, final int[] right, final int size) {
-    if (!active)
-      return;
     int p = 0;
     int todo = size;
     while (todo > 0) {
@@ -130,19 +127,18 @@ public final class ModPlayer {
 
   private void doLine() {
     final Block block = mod.blocks[mod.order[pos]];
-    if (line == 0)
-      Log.d("tinymod", ">> " + pos + "(" + mod.order[pos] + ")");
-    Log.d("tinymod",
-        "#" + line / 100 % 10 + line / 10 % 10 + line % 10 + "|" + block.lineString(line) + "|");
+    //    if (line == 0)
+    //      Log.d("tinymod", ">> " + pos + "(" + mod.order[pos] + ")");
+    //    Log.d("tinymod",
+    //        "#" + line / 100 % 10 + line / 10 % 10 + line % 10 + "|" + block.lineString(line) + "|");
     for (int i = 0; i < block.tracks(line); i++) {
       final Note note = block.note(line, i);
       track[i].doTrack(note); // update sound (volume and pitch)
       doTrack(note); // update control (global)
     }
     nextPos();
-    if (active) // process hold/decay check for next note (from MED)
-      for (int i = 0; i < block.tracks(line); i++)
-        track[i].checkHold(block.note(line, i), tpl);
+    for (int i = 0; i < block.tracks(line); i++)
+      track[i].checkHold(block.note(line, i), tpl);
   }
 
   private void doTrack(final Note note) {
