@@ -9,34 +9,35 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:layout_weight="1"
-    android:textFilterEnabled="true"/>
+    android:textFilterEnabled="true"
+    android:choiceMode="singleChoice"/>
   <LinearLayout
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:layout_gravity="center_horizontal"
+    android:layout_gravity="fill"
     android:paddingTop="5dp">
     <Button
-      android:text="@string/button_play"
       android:id="@+id/play"
-      android:layout_width="wrap_content"
+      android:text="@string/button_play"
+      android:layout_width="fill_parent"
       android:layout_height="wrap_content"
       android:layout_gravity="fill_horizontal"
       android:layout_weight="1"
       android:enabled="false"/>
     <Button
-      android:text="@string/button_pause"
       android:id="@+id/pause"
-      android:layout_width="wrap_content"
+      android:text="@string/button_pause"
+      android:layout_width="fill_parent"
       android:layout_height="wrap_content"
       android:layout_gravity="fill_horizontal"
       android:layout_weight="1"
       android:enabled="false"
       android:visibility="gone"/>
     <Button
-      android:text="@string/button_stop"
       android:id="@+id/stop"
-      android:layout_width="wrap_content"
+      android:text="@string/button_stop"
+      android:layout_width="fill_parent"
       android:layout_height="wrap_content"
       android:layout_gravity="fill_horizontal"
       android:layout_weight="1"

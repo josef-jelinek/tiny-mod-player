@@ -13,6 +13,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -24,10 +25,12 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Toast;
 
 public class Start extends ListActivity {
   private static final String MEDIA_PATH = "/sdcard/Mods";
   private final List<String> songs = new ArrayList<String>();
+  private final List<String> songPaths = new ArrayList<String>();
   private final static ModFilter filter = new ModFilter();
   private Button playButton;
   private Button pauseButton;
@@ -76,7 +79,10 @@ public class Start extends ListActivity {
     setButtonListeners();
     setBroadcastReceivers();
     showButtonsForStop();
-    bindService(new Intent(this, TinyModService.class), serviceConnection, Context.BIND_AUTO_CREATE);
+    final Intent intent = new Intent(this, TinyModService.class);
+    startService(intent);
+    if (!bindService(intent, serviceConnection, 0))
+      Toast.makeText(this, "Inicialization error", Toast.LENGTH_SHORT);
   }
 
   @Override
@@ -89,6 +95,9 @@ public class Start extends ListActivity {
     }
     super.onDestroy();
   }
+
+  @Override
+  public void onConfigurationChanged(final Configuration newConfig) {}
 
   private void setButtonListeners() {
     playButton.setOnClickListener(new View.OnClickListener() {
@@ -177,18 +186,19 @@ public class Start extends ListActivity {
 
   public void updateSongList() {
     final List<File> fileList = listSongFiles(new File(MEDIA_PATH));
-    sendMessage(Message.obtain(null, TinyModService.MSG_CLEAR));
+    songs.clear();
+    songPaths.clear();
     for (final File file : fileList) {
       songs.add(file.getName());
-      final Message message = Message.obtain(null, TinyModService.MSG_ADD);
-      sendMessage(addStringParameter(message, "name", file.getAbsolutePath()));
+      songPaths.add(file.getAbsolutePath());
     }
     setListAdapter(new ArrayAdapter<String>(this, R.layout.mod_item, songs));
   }
 
   @Override
   protected void onListItemClick(final ListView l, final View v, final int position, final long id) {
-    sendMessage(Message.obtain(null, TinyModService.MSG_PLAY_INDEX, position, 0));
+    final Message message = Message.obtain(null, TinyModService.MSG_PLAY_FILE);
+    sendMessage(addStringParameter(message, "name", songPaths.get(position)));
   }
 
   private void sendMessage(final Message message) {
@@ -203,7 +213,7 @@ public class Start extends ListActivity {
 
   private Message addStringParameter(final Message message, final String name, final String value) {
     final Bundle b = new Bundle();
-    b.putString(name, value);
+    b.putString(name, value); // more files using putStringArray()
     message.setData(b);
     return message;
   }

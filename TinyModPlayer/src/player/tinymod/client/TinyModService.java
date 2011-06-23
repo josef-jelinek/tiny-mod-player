@@ -3,8 +3,6 @@ package player.tinymod.client;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import player.tinymod.AndroidAudioDevice;
 import player.tinymod.Mod;
 import player.tinymod.ModPlayer;
@@ -21,22 +19,57 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
-import android.widget.Toast;
 
 public class TinyModService extends Service {
+  static final int MSG_PLAY_FILE = 1;
+  static final int MSG_PLAY = 2;
+  static final int MSG_PAUSE = 3;
+  static final int MSG_STOP = 4;
+  static final int MSG_GET_PLAYING_STATE = 5;
+  static final int MSG_SET_PLAYING_STATE = 6;
+  static final int PLAYING_STATE_PLAY = 0;
+  static final int PLAYING_STATE_PAUSE = 1;
+  static final int PLAYING_STATE_STOP = 2;
+  static final int PLAYING_STATE_END = 3;
   private final MediaPlayer mp = new MediaPlayer();
-  private final List<String> songs = new ArrayList<String>();
-  private int currentPosition;
   private final ModPlayer player = new ModPlayer(new AndroidAudioDevice(44100), true);
+  private final Messenger messenger = new Messenger(new Handler() {
+    @Override
+    public void handleMessage(final Message message) {
+      Log.d("tinymod", "service got a message " + message.what);
+      switch (message.what) {
+      case MSG_PLAY_FILE:
+        play(message.getData().getString("name"));
+        break;
+      case MSG_PLAY:
+        play();
+        break;
+      case MSG_PAUSE:
+        pause();
+        break;
+      case MSG_STOP:
+        stop();
+        break;
+      case MSG_GET_PLAYING_STATE:
+        sendPlayingState(message.replyTo);
+        break;
+      default:
+        super.handleMessage(message);
+      }
+    }
+  });
 
   @Override
   public void onDestroy() {
+    Log.d("tinymod", "service destroyed");
     stopLoop();
     mp.stop();
     mp.release();
+    super.onDestroy();
   }
 
   private void startForeground(final String name) {
+    Log.d("tinymod", "service going foreground");
     final CharSequence text = getString(R.string.service_song_playing) + " " + name;
     final Notification notification =
         new Notification(R.drawable.notify_icon, text, System.currentTimeMillis());
@@ -49,6 +82,7 @@ public class TinyModService extends Service {
   }
 
   private void stopForeground() {
+    Log.d("tinymod", "service going background");
     stopForeground(true);
     Log.d("tinymod", "service broadcasting stop");
     sendBroadcast(new Intent(getString(R.string.intent_action_stop)));
@@ -81,7 +115,8 @@ public class TinyModService extends Service {
         mp.start();
         mp.setOnCompletionListener(new OnCompletionListener() {
           public void onCompletion(final MediaPlayer arg0) {
-            nextSong();
+            Log.d("tinymod", "service broadcasting stop");
+            sendBroadcast(new Intent(getString(R.string.intent_action_stop)));
           }
         });
       }
@@ -127,115 +162,35 @@ public class TinyModService extends Service {
     } catch (final InterruptedException e) {}
   }
 
-  private void nextSong() {
-    if (++currentPosition >= songs.size())
-      currentPosition = 0;
-    else
-      playSong(songs.get(currentPosition));
-  }
-
-  private void prevSong() {
-    if (mp.getCurrentPosition() < 3000 && currentPosition >= 1)
-      playSong(songs.get(--currentPosition));
-    else
-      playSong(songs.get(currentPosition));
-  }
-
-  public void play(final int position) {
-    currentPosition = position < 0 || position >= songs.size() ? 0 : position;
+  private void play(final String path) {
     player.stop();
     Log.d("tinymod", "service broadcasting stop");
     sendBroadcast(new Intent(getString(R.string.intent_action_stop)));
-    play();
+    playSong(path);
   }
 
-  public void play() {
+  private void play() {
     try {
       if (player.isActive() && player.isPaused()) {
         player.resume();
         Log.d("tinymod", "service broadcasting play");
         sendBroadcast(new Intent(getString(R.string.intent_action_play)));
-      } else if (!player.isActive())
-        playSong(songs.get(currentPosition));
+      }
     } catch (final IndexOutOfBoundsException e) {
       Log.e("tinymod", e.getMessage(), e);
     }
   }
 
-  public void add(final String song) {
-    songs.add(song);
-  }
-
-  public void clear() {
-    songs.clear();
-  }
-
-  public void backward() {
-    prevSong();
-  }
-
-  public void forward() {
-    nextSong();
-  }
-
-  public void pause() {
+  private void pause() {
     player.pause();
     mp.pause();
     sendBroadcast(new Intent(getString(R.string.intent_action_pause)));
     Log.d("tinymod", "service broadcasting pause");
   }
 
-  public void stop() {
+  private void stop() {
     stopLoop();
     mp.stop();
-  }
-
-  static final int MSG_PLAY_INDEX = 1;
-  static final int MSG_PLAY = 2;
-  static final int MSG_PAUSE = 3;
-  static final int MSG_STOP = 4;
-  static final int MSG_ADD = 5;
-  static final int MSG_CLEAR = 6;
-  static final int MSG_GET_PLAYING_STATE = 7;
-  static final int MSG_SET_PLAYING_STATE = 8;
-  static final int PLAYING_STATE_PLAY = 0;
-  static final int PLAYING_STATE_PAUSE = 1;
-  static final int PLAYING_STATE_STOP = 2;
-
-  class IncomingHandler extends Handler {
-    @Override
-    public void handleMessage(final Message message) {
-      Log.d("tinymod", "service got a message " + message.what);
-      switch (message.what) {
-      case MSG_CLEAR:
-        clear();
-        break;
-      case MSG_ADD:
-        add(message.getData().getString("name"));
-        break;
-      case MSG_PLAY_INDEX:
-        Toast.makeText(getApplicationContext(), "play " + message.arg1, Toast.LENGTH_SHORT).show();
-        play(message.arg1);
-        break;
-      case MSG_PLAY:
-        Toast.makeText(getApplicationContext(), "play", Toast.LENGTH_SHORT).show();
-        play();
-        break;
-      case MSG_PAUSE:
-        Toast.makeText(getApplicationContext(), "pause", Toast.LENGTH_SHORT).show();
-        pause();
-        break;
-      case MSG_STOP:
-        Toast.makeText(getApplicationContext(), "stop", Toast.LENGTH_SHORT).show();
-        stop();
-        break;
-      case MSG_GET_PLAYING_STATE:
-        sendPlayingState(message.replyTo);
-        break;
-      default:
-        super.handleMessage(message);
-      }
-    }
   }
 
   private void sendPlayingState(final Messenger messenger) {
@@ -250,11 +205,9 @@ public class TinyModService extends Service {
     }
   }
 
-  final Messenger messenger = new Messenger(new IncomingHandler());
-
   @Override
   public IBinder onBind(final Intent intent) {
-    Log.d("tinymod", "binding");
+    Log.d("tinymod", "service binding");
     return messenger.getBinder();
   }
 }
