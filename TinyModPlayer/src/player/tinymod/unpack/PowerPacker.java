@@ -2,7 +2,7 @@ package player.tinymod.unpack;
 
 import player.tinymod.io.BitReader;
 
-public final class PowerPackerLite {
+public final class PowerPacker {
   public static byte[] unpack(final byte[] pk) {
     if (pk.length < 12 || pk[0] != 'P' || pk[1] != 'P' || pk[2] != '2' || pk[3] != '0')
       return null;
@@ -65,5 +65,5 @@ public final class PowerPackerLite {
     return outPos;
   }
 
-  private PowerPackerLite() {}
+  private PowerPacker() {}
 }

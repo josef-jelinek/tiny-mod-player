@@ -1,0 +1,23 @@
+
+Utilize:
+  Mod:transpose
+  Mod:mainVolume
+  Mod:trackVolume
+
+Nested pattern loops - in different tracks
+Decreasing "master volume" with additional channels
+
+PP20 - ready in PowerPacker.java
+
+MMD2 - probably only MMD2 Song structure...
+
+Flexible Format Recognizing
+
+THX/AHX
+
+S3M
+XM
+IT
+
+click removal (no idea yet.. all attemts failed so far)
+

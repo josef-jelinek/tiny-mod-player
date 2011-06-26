@@ -1,0 +1,67 @@
+
+Tempo in MOD:
+
+  BpM = var (= 125)
+  LpB = undefined
+  TpL = var (= 6)
+  TpS = ? (= 50)
+
+  BpS = BpM/60
+  TpB = TpS/BpS = TpS/(BpM/60) = 60*TpS/BpM (= 50*60/125 = 24)
+  LpB = TpB/TpL (= 24/6 = 4)
+
+  TpS = BpM*(50/125) - used in PT
+  TpS = TpB*BpS = TpB*BpM/60 = BpM*(TpB/60) - not used in PT
+
+  50/125 = TpB/60 => TpB = 50*60/125 = 24
+
+ SETUP:
+  BpM = var
+  TpL = var
+  TpB = 24
+  TpS = TpB*BpS = TpB*BpM/60 (= BpM*2/5)
+
+
+Tempo in MED:
+
+ * Not BpM mode *
+
+ INPUT:
+  tmp = var (= 33)
+  LpB = undefined
+  TpL = var (= 6)
+  TpS = ? (= 50)
+
+  BpM = tmp*125/33
+  TpS = BpM*50/125 = tmp*125/33*50/125 = tmp*50/33
+  TpS = TpB*BpS = TpB*BpM/60 = TpB*tmp*125/33/60 = TpB*tmp*25/396
+
+  50/33 = TpB*25/396 => TpB = 50/25*396/33 = 24
+
+ SETUP 1:
+  tmp = var
+  TpL = var
+  TpB = 24
+  TpS = TpB*BpS = TpB*BpM/60 = TpB*tmp*125/33/60 = TpB*tmp*25/396 (= tmp*50/33)
+
+ SETUP 2 (after conversion tmp -> BpM):
+  BpM = var (= tmp*125/33)
+  TpL = var
+  TpB = 24
+  TpS = TpB*BpS = TpB*BpM/60 (= BpM*2/5)
+
+ * BpM mode *
+
+ INPUT:
+  BpM = var
+  LpB = var
+  TpL = var
+  TpS = ?
+
+ SETUP:
+  BpM = var
+  TpL = var
+  LpB = var
+  TpB = TpL*LpB
+  TpS = TpB*BpS = TpB*BpM/60
+
