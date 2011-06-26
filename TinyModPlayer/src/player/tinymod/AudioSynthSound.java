@@ -100,7 +100,7 @@ public final class AudioSynthSound {
     return true;
   }
 
-  public void jumpWaveForm(final int pos) {
+  public void jumpWaveform(final int pos) {
     if (instrument != null) {
       wfPos = pos;
       wfWait = 0;

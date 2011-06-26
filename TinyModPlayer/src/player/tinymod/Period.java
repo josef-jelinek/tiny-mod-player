@@ -53,7 +53,7 @@ public final class Period {
   }
 
   public static String getKeyName(final int key, final boolean hold) {
-    return key == 0 && hold ? " | " : key < 0 || key >= keyNames.length ? " ! " : keyNames[key];
+    return key == 0 && hold ? " * " : key < 0 || key >= keyNames.length ? " ! " : keyNames[key];
   }
 
   public static int snapPeriod(final int period) {

@@ -132,13 +132,11 @@ public final class ModPlayer {
     final Block block = mod.blocks[mod.order[pos]];
     if (line == 0)
       Log.d("tinymod", ">> " + pos + "(" + mod.order[pos] + ")");
-    Log.d("tinymod",
-        "#" + line / 100 % 10 + line / 10 % 10 + line % 10 + "|" + block.lineString(line) + "|");
-    for (int i = 0; i < block.tracks(line); i++) {
-      final Note note = block.note(line, i);
-      track[i].doTrack(note); // update sound (volume and pitch)
-      doTrack(note); // update control (global)
-    }
+    Log.d("tinymod", "" + line / 100 % 10 + line / 10 % 10 + line % 10 + block.lineString(line));
+    for (int i = 0; i < block.tracks(line); i++)
+      track[i].doTrack(block.note(line, i)); // update sound (volume and pitch)
+    for (int i = 0; i < block.tracks(line); i++)
+      doTrack(block.note(line, i)); // update control (global)
     nextPos();
     for (int i = 0; i < block.tracks(line); i++)
       track[i].checkHold(block.note(line, i), tpl);
@@ -185,17 +183,13 @@ public final class ModPlayer {
         cycleTimes = 0;
       }
       pos = jumpPos;
-      //while (pos < mod.songLength && mod.order[pos] >= mod.blocks.length)
-      //pos++;
       line = jumpLine;
       jump = false;
     } else
       line++;
     while (pos < mod.songLength && line >= mod.blocks[mod.order[pos]].lines()) {
       line -= mod.blocks[mod.order[pos]].lines();
-      //do {
       pos++;
-      //} while (pos < mod.songLength && mod.order[pos] >= mod.blocks.length);
       cycleLine = 0;
       cycleTimes = 0;
     }

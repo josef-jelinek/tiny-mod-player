@@ -26,7 +26,7 @@ public final class Block {
   public String lineString(final int line) {
     String s = "";
     for (int track = 0; track < tracks(line); track++)
-      s += (track > 0 ? "|" : "") + note(line, track);
-    return s;
+      s += "|" + note(line, track);
+    return s + "|";
   }
 }

@@ -83,9 +83,9 @@ public final class AudioTrack {
     retrigSpeed = 0;
   }
 
-  public void mix(final int[] lBuf, final int[] rBuf, final int from, final int to,
+  public void mix(final int[] left, final int[] right, final int from, final int to,
       final boolean filter) {
-    sound.mix(lBuf, rBuf, from, to, filter, volume * 8);
+    sound.mix(left, right, from, to, filter, volume * 16);
   }
 
   public void doTrack(final Note note) {
@@ -95,12 +95,7 @@ public final class AudioTrack {
     final int efy = currentParamY = note.paramY;
     final int efxy = efx * 16 + efy;
     nextVolume = -1;
-    if (note.instrument != null) {
-      nextInstrument = note.instrument;
-      nextVolume = nextInstrument.volume;
-      nextHold = nextInstrument.hold == 0 ? -1 : nextInstrument.hold;
-      nextDecay = nextInstrument.decay;
-    }
+    setNextInstrument(note.instrument);
     nextKey = 0;
     if (note.key == 128) // stop note
       stopNote = true;
@@ -163,10 +158,8 @@ public final class AudioTrack {
     case 0x08: // pan
       if (efxy == 0xA4) // surround
         sound.pan(-128, 128);
-      else {
-        final int pan = Tools.crop(efxy, 0, 128) * 2;
-        sound.pan(256 - pan, pan);
-      }
+      else
+        setPan(Tools.crop(efxy, 0, 128) * 2);
       break;
     case 0x09: // sample offset - start skip
       sound.playFrom(efxy * 256);
@@ -188,7 +181,7 @@ public final class AudioTrack {
       fade = 0;
       break;
     case 0x1E: // set synth waveform position (from MED)
-      sound.synthWf(efxy);
+      sound.synthWaveform(efxy);
       break;
     case 0x1F: // delay + retrigger note (from MED)
       if (efxy != 0) {
@@ -227,8 +220,7 @@ public final class AudioTrack {
         tremoloIndex = 0;
       break;
     case 0xE8: // 16 position panning
-      final int pan = efxy * 256 / 15;
-      sound.pan(256 - pan, pan);
+      setPan(efxy * 256 / 15);
     case 0xE9: // retrigger note
       if (efxy != 0) {
         effect = RETRIG_NOTE;
@@ -262,10 +254,22 @@ public final class AudioTrack {
     }
   }
 
+  private void setPan(final int pan) {
+    sound.pan(256 - pan, pan);
+  }
+
+  private void setNextInstrument(final Instrument instrument) {
+    if (instrument != null) {
+      nextInstrument = instrument;
+      nextVolume = nextInstrument.volume;
+      nextHold = nextInstrument.hold == 0 ? -1 : nextInstrument.hold;
+      nextDecay = nextInstrument.decay;
+    }
+  }
+
   public void checkHold(final Note note, final int ticks) { // called right after doTrack with the new note
     if (hold >= 0)
-      if (note.hold || note.key > 0 && note.key < 128 &&
-          (note.effect == 0x03 || note.effect == 0x05))
+      if (note.isHolding())
         hold += ticks;
     if (stopNote)
       hold = 0;
@@ -275,68 +279,99 @@ public final class AudioTrack {
   public void doEffects(final boolean newLine) { // should be called each tick (after doTrack and chechHold if new line)
     restoreTone();
     doDecay();
-    if (effect == DELAY_NOTE || effect == DELAY_RETRIG_NOTE) { // delay note
-      if (delay > 0)
-        delay--;
-      else {
-        effect = effect == DELAY_NOTE ? NONE : RETRIG_NOTE;
-        playNote();
-      }
-    } else if (effect == RETRIG_NOTE) { // retrigger note
-      if (effectCounter > 0)
-        effectCounter--;
-      else {
-        nextKey = retrigKey;
-        nextVolume = retrigVolume;
-        playNote();
-        effectCounter = retrigSpeed;
-      }
-    } else if (effect == CUT_NOTE) { // cut note
-      if (effectCounter > 0)
-        effectCounter--;
-      else
-        volume(0);
-    } else if (effect == ARPEGGIO) { // arpeggio
-      sound.setKeyPeriod(arpeggioNotes[effectCounter]);
-      effectCounter = (effectCounter + 1) % 3;
-    } else if (effect == TREMOLO) { // tremolo
-      tempVolume(volume + AudioSound.waveform(tremoloWaveform & 3, tremoloIndex) * tremoloDepth /
-          255);
-      tremoloIndex = (tremoloIndex + tremoloSpeed) % 63;
-    } else if (effect == PORTA_UP) { // portamente up
-      if (!newLine)
-        sound.modPeriod(-(currentParamX * 16 + currentParamY));
-    } else if (effect == PORTA_DOWN)
-      if (!newLine)
-        sound.modPeriod(currentParamX * 16 + currentParamY);
-    if (effect == VIBRATO || effect == VIBRATO_VOLUME_SLIDE) { // vibrato (+ volume slide)
-      sound.vibrato(vibratoWaveform & 3, vibratoIndex, vibratoDepth);
-      vibratoIndex = (vibratoIndex + vibratoSpeed) % 63;
-    }
-    if (effect == VOLUME_SLIDE || effect == PORTA_VOLUME_SLIDE || effect == VIBRATO_VOLUME_SLIDE)
-      if (!newLine)
-        volume(volume + currentParamX - currentParamY);
-    if (effect == PORTA || effect == PORTA_VOLUME_SLIDE)
-      if (!newLine)
-        sound.toKey(portaKey, portaSpeed, glissando);
+    if (effect == DELAY_NOTE || effect == DELAY_RETRIG_NOTE)
+      delayNote();
+    else if (effect == RETRIG_NOTE)
+      retriggerNote();
+    else if (effect == CUT_NOTE)
+      cutNote();
+    else if (effect == ARPEGGIO)
+      updateArpeggio();
+    else if (effect == TREMOLO)
+      updateTremolo();
+    else if (isPortamenteUpOrDown(effect) && !newLine)
+      sound.modPeriod(getPortamenteDirection(effect) * (currentParamX * 16 + currentParamY));
+    if (isVibrato(effect))
+      updateVibrato();
+    if (isVolumeSlide(effect) && !newLine)
+      volume(volume + currentParamX - currentParamY);
+    if (isPortamente(effect) && !newLine)
+      sound.toKey(portaKey, portaSpeed, glissando);
     sound.update();
   }
 
+  private void updateVibrato() {
+    sound.vibrato(vibratoWaveform & 3, vibratoIndex, vibratoDepth);
+    vibratoIndex = (vibratoIndex + vibratoSpeed) % 63;
+  }
+
+  private void updateTremolo() {
+    tempVolume(volume + AudioSound.waveform(tremoloWaveform & 3, tremoloIndex) * tremoloDepth / 255);
+    tremoloIndex = (tremoloIndex + tremoloSpeed) % 63;
+  }
+
+  private void updateArpeggio() {
+    sound.setKeyPeriod(arpeggioNotes[effectCounter]);
+    effectCounter = (effectCounter + 1) % 3;
+  }
+
+  private void delayNote() {
+    if (delay > 0)
+      delay--;
+    else {
+      effect = effect == DELAY_NOTE ? NONE : RETRIG_NOTE;
+      playNote();
+    }
+  }
+
+  private void cutNote() {
+    if (effectCounter > 0)
+      effectCounter--;
+    else
+      volume(0);
+  }
+
+  private void retriggerNote() {
+    if (effectCounter > 0)
+      effectCounter--;
+    else {
+      nextKey = retrigKey;
+      nextVolume = retrigVolume;
+      playNote();
+      effectCounter = retrigSpeed;
+    }
+  }
+
+  private static boolean isPortamenteUpOrDown(final int effect) {
+    return effect == PORTA_UP || effect == PORTA_DOWN;
+  }
+
+  private static int getPortamenteDirection(final int effect) {
+    return effect == PORTA_UP ? -1 : effect == PORTA_DOWN ? 1 : 0;
+  }
+
+  private static boolean isVibrato(final int effect) {
+    return effect == VIBRATO || effect == VIBRATO_VOLUME_SLIDE;
+  }
+
+  private static boolean isVolumeSlide(final int effect) {
+    return effect == VOLUME_SLIDE || effect == PORTA_VOLUME_SLIDE || effect == VIBRATO_VOLUME_SLIDE;
+  }
+
+  private static boolean isPortamente(final int effect) {
+    return effect == PORTA || effect == PORTA_VOLUME_SLIDE;
+  }
+
   private void doDecay() {
-    if (hold >= 0 && --hold < 0)
-      if (!sound.decay(decay))
-        if ((fade = decay) == 0)
+    if (hold >= 0) {
+      hold--;
+      if (hold < 0 && !sound.synthDecay(decay)) {
+        fade = decay;
+        if (fade == 0)
           volume(0);
+      }
+    }
     volume(volume - fade);
-    //    if (hold >= 0)
-    //      hold--;
-    //    if (hold < 0)
-    //      if (!sound.decay(decay)) {
-    //        fade = decay;
-    //        if (fade == 0)
-    //          volume(0);
-    //      }
-    //    volume(volume - fade);
   }
 
   private void playNote() {

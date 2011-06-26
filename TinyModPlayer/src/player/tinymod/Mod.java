@@ -365,11 +365,8 @@ public final class Mod {
     final int b0 = data.u1();
     final int b1 = data.u1();
     final int b2 = data.u1();
-    final int key = b0 & 63;
     final int smp = (b0 >> 1 & 32 | b0 >> 3 & 16 | b1 >> 4 & 15) - 1;
-    final int effxy = medCommand(b1 & 15, b2, hexVol, chan5to8, bpmMode);
-    final Instrument instr = smp < 0 || smp >= mod.instruments.length ? null : mod.instruments[smp];
-    return new Note(key, instr, effxy >> 8, effxy >> 4 & 15, effxy & 15, instr != null && key == 0);
+    return getMedNote(mod, b0 & 63, smp, medCommand(b1 & 15, b2, hexVol, chan5to8, bpmMode));
   }
 
   private static Note readMmd1Note(final ByteReader data, final Mod mod, final boolean hexVol,
@@ -378,9 +375,11 @@ public final class Mod {
     final int b1 = data.u1() & 63;
     final int b2 = data.u1();
     final int b3 = data.u1();
-    final int key = b0;
     final int smp = b1 - 1;
-    final int effxy = medCommand(b2, b3, hexVol, chan5to8, bpmMode);
+    return getMedNote(mod, b0, smp, medCommand(b2, b3, hexVol, chan5to8, bpmMode));
+  }
+
+  private static Note getMedNote(final Mod mod, final int key, final int smp, final int effxy) {
     final Instrument instr = smp < 0 || smp >= mod.instruments.length ? null : mod.instruments[smp];
     return new Note(key, instr, effxy >> 8, effxy >> 4 & 15, effxy & 15, instr != null && key == 0);
   }

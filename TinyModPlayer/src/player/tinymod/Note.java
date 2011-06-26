@@ -6,8 +6,7 @@ public final class Note {
   public final int effect;
   public final int paramX;
   public final int paramY;
-  public final boolean hold;
-  public String string;
+  private final boolean hold;
 
   public Note(final int key, final Instrument instrument, final int effect, final int paramX,
       final int paramY, final boolean hold) {
@@ -19,11 +18,13 @@ public final class Note {
     this.hold = hold && this.key < 128;
   }
 
+  public boolean isHolding() {
+    return hold || key > 0 && key < 128 && (effect == 0x03 || effect == 0x05);
+  }
+
   @Override
   public String toString() {
-    if (string == null)
-      string = Period.getKeyName(key, hold) + " " + getInstrumentName() + " " + getEffectName();
-    return string;
+    return Period.getKeyName(key, hold) + " " + getInstrumentName() + " " + getEffectName();
   }
 
   private String getInstrumentName() {

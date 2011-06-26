@@ -7,28 +7,24 @@ public final class AudioSound {
       -161, -180, -197, -212, -224, -235, -244, -250, -253, -255, -253, -250, -244, -235, -224,
       -212, -197, -180, -161, -141, -120, -97, -74, -49, -24 };
   private final long stepForPeriod;
+  private final AudioSynthSound synthSound;
   private Instrument instrument;
   private byte[] data;
   private long pos;
   private long step;
   private int end;
   private int fineTune;
-  private final AudioSynthSound synth;
   private int lastKey;
   private int period;
   private int period0;
-  private final int lPan0;
-  private final int rPan0;
-  private int lPan;
-  private int rPan;
+  private int leftPan;
+  private int rightPan;
 
-  public AudioSound(final long stepForPeriod, final int left, final int right) {
+  public AudioSound(final long stepForPeriod, final int leftPan, final int rightPan) {
     this.stepForPeriod = stepForPeriod;
-    lPan0 = left;
-    rPan0 = right;
-    synth = new AudioSynthSound();
-    lPan = lPan0;
-    rPan = rPan0;
+    synthSound = new AudioSynthSound();
+    this.leftPan = leftPan;
+    this.rightPan = rightPan;
     instrument = null;
     resetNote();
     step = 0;
@@ -42,7 +38,7 @@ public final class AudioSound {
     end = 0;
     fineTune = 0;
     data = null;
-    synth.instrument(instrument);
+    synthSound.instrument(instrument);
     if (instrument != null) {
       data = instrument.data();
       end = data.length;
@@ -65,12 +61,12 @@ public final class AudioSound {
     }
   }
 
-  public boolean decay(final int decay) {
-    return synth.decay(decay);
+  public boolean synthDecay(final int decay) {
+    return synthSound.decay(decay);
   }
 
-  public void synthWf(final int pos) {
-    synth.jumpWaveForm(pos);
+  public void synthWaveform(final int pos) {
+    synthSound.jumpWaveform(pos);
   }
 
   public void playFrom(final long x) {
@@ -117,103 +113,108 @@ public final class AudioSound {
       setPeriod(Period.getPeriodForKey(key, fineTune));
   }
 
-  private void modTempPeriod(final int d) {
-    period = Period.cropPeriod(period + 100 * d);
-    step = 100 * stepForPeriod / period;
-  }
-
   public void restorePeriod() {
     period = period0;
   }
 
-  public void vibrato(final int waveform, final int index, final int depth) {
-    modTempPeriod(modulate(waveform, index, depth));
+  public void vibrato(final int waveformType, final int index, final int depth) {
+    modTempPeriod(modulate(waveformType, index, depth));
   }
 
-  public static int modulate(final int waveform, final int index, final int depth) { // index 0..63
-    return waveform(waveform, index) * depth / 255;
+  public static int modulate(final int waveformType, final int index, final int depth) { // index 0..63
+    return waveform(waveformType, index) * depth / 255;
   }
 
   public static int waveform(final int type, final int index) { // index 0..63
-    if ((type & 3) == 1) // ramp down waveform
+    if (type == 1) // ramp down waveform
       return 255 - index * 510 / 63;
-    if ((type & 3) == 2) // square waveform
+    if (type == 2) // square waveform
       return index / 32 * 510 - 255;
     return sintab[index]; // sine (or random) waveform
   }
 
   public void update() { // update each tick - particularly synths
-    synth.update();
-    if (synth.arpeggio())
-      setKeyPeriod(Tools.crop(lastKey + synth.keyChange(), 0, 127));
-    modTempPeriod(synth.periodChange());
-    if (synth.dataChange() != null) {
-      data = synth.dataChange();
+    synthSound.update();
+    if (synthSound.arpeggio())
+      setKeyPeriod(Tools.crop(lastKey + synthSound.keyChange(), 0, 127));
+    modTempPeriod(synthSound.periodChange());
+    if (synthSound.dataChange() != null) {
+      data = synthSound.dataChange();
       end = data.length;
     }
   }
 
-  public void pan(final int left, final int right) {
-    lPan = left;
-    rPan = right;
+  private void modTempPeriod(final int d) {
+    period = Period.cropPeriod(period + 100 * d);
+    step = 100 * stepForPeriod / period;
   }
 
-  public void mix(final int[] lBuf, final int[] rBuf, final int from, final int to,
+  public void pan(final int left, final int right) {
+    leftPan = left;
+    rightPan = right;
+  }
+
+  public void mix(final int[] left, final int[] right, final int from, final int to,
       final boolean filter, final int trackVolume) {
     if (instrument == null)
       return;
-    int lps = instrument.loopStart;
-    int lpl = instrument.loopLength;
-    if (synth.synthWaveForm()) {
-      lps = 0;
-      lpl = data.length;
-    }
-    if (!fixPos(lps, lpl))
-      return;
-    for (int i = from; i < to && (pos >>> 16) < end; i++) {
-      final int sp = (int)(pos >>> 16);
-      int d = data[sp] * 4;
-      if (filter) { // simple filter
-        final int t = sampleAt(sp + 1, data, end, lps, lpl) * 4;
-        final int d1 = (sampleAt(sp - 1, data, end, lps, lpl) * 4 + d * 2 + t);
-        final int d2 = (d + 2 * t + sampleAt(sp + 2, data, end, lps, lpl) * 4);
-        final int spf = (int)(pos & 65535);
-        d = (d1 * (65535 - spf) + d2 * spf) / 65535 / 4;
-      } else { // linear resampling
-        final int spf = (int)(pos & 65535);
-        final int t = sampleAt(sp + 1, data, end, lps, lpl) * 4;
-        d = (d * (65535 - spf) + t * spf) / 65535;
-      }
-      // trackVolume = track.volume * main.volume / main.boost
-      final int s = trackVolume * synth.volume() * d / 4096;
-      lBuf[i] += s * lPan / 256;
-      rBuf[i] += s * rPan / 256;
+    final int loopStart = synthSound.synthWaveForm() ? 0 : instrument.loopStart;
+    final int loopLength = synthSound.synthWaveForm() ? data.length : instrument.loopLength;
+    for (int i = from; loopPos(loopStart, loopLength) && i < to && (pos >>> 16) < end; i++) {
+      mixValue(left, right, i,
+          trackVolume * synthSound.volume() * getSampleValue(filter, loopStart, loopLength) / 4096);
       pos += step;
-      if (!fixPos(lps, lpl))
-        break;
     }
   }
 
-  private boolean fixPos(final int lps, final int lpl) {
+  private void mixValue(final int[] left, final int[] right, final int i, final int value) {
+    left[i] += value * leftPan / 256;
+    right[i] += value * rightPan / 256;
+  }
+
+  private int getSampleValue(final boolean filter, final int loopStart, final int loopLength) {
+    return filter ? getFilteredValue(loopStart, loopLength) : getInterpolatedValue(loopStart,
+        loopLength);
+  }
+
+  private int getInterpolatedValue(final int loopStart, final int loopLength) {
+    final int posWhole = (int)(pos >>> 16);
+    final int d1 = sampleAt(posWhole, data, end, loopStart, loopLength) * 4;
+    final int d2 = sampleAt(posWhole + 1, data, end, loopStart, loopLength) * 4;
+    final int posFractional = (int)(pos & 0xFFFF);
+    return (d1 * (0xFFFF - posFractional) + d2 * posFractional) / 0xFFFF;
+  }
+
+  private int getFilteredValue(final int loopStart, final int loopLength) {
+    final int posWhole = (int)(pos >>> 16);
+    final int t1 = sampleAt(posWhole, data, end, loopStart, loopLength) * 4;
+    final int t2 = sampleAt(posWhole + 1, data, end, loopStart, loopLength) * 4;
+    final int d1 = t2 + 2 * t1 + sampleAt(posWhole - 1, data, end, loopStart, loopLength) * 4;
+    final int d2 = t1 + 2 * t2 + sampleAt(posWhole + 2, data, end, loopStart, loopLength) * 4;
+    final int posFractional = (int)(pos & 0xFFFF);
+    return (d1 * (0xFFFF - posFractional) + d2 * posFractional) / 0xFFFF / 4;
+  }
+
+  private boolean loopPos(final int loopStart, final int loopLength) {
     while ((pos >>> 16) >= end) {
-      if (lpl == 0)
+      if (loopLength == 0)
         return false;
-      pos = ((long)lps << 16) | (pos & 65535);
-      end = lps + lpl;
+      pos = ((long)loopStart << 16) | (pos & 0xFFFF);
+      end = loopStart + loopLength;
     }
     return true;
   }
 
-  private static int sampleAt(int pos, final byte[] data, final int end, final int lps,
-      final int lpl) {
+  private static int sampleAt(int pos, final byte[] data, final int end, final int loopStart,
+      final int loopLength) {
     if (pos < 0)
       return 0;
     if (pos < end)
       return data[pos];
-    if (lpl == 0 || lps >= end)
+    if (loopLength == 0 || loopStart >= end)
       return 0;
-    while (pos - end >= lpl)
-      pos -= lpl;
-    return data[lps + pos - end];
+    while (pos - end >= loopLength)
+      pos -= loopLength;
+    return data[loopStart + pos - end];
   }
 }
