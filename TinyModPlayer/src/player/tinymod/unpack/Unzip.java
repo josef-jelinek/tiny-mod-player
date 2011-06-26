@@ -10,16 +10,18 @@ import android.util.Log;
 
 public final class Unzip {
   private static final byte[] Empty = new byte[0];
-  private final List<byte[]> blocks = new ArrayList<byte[]>();
-  private final List<String> names = new ArrayList<String>();
+  private final List<Item> items = new ArrayList<Item>();
 
   public void read(final InputStream in) {
     final ZipInputStream zip = new ZipInputStream(in);
     try {
       do {} while (processNextEntry(zip));
-      zip.close();
     } catch (final Exception e) {
-      Log.w("tinymod Unzip", e);
+      Log.w("tinymod", e);
+    } finally {
+      try {
+        zip.close();
+      } catch (final IOException e) {}
     }
   }
 
@@ -28,20 +30,17 @@ public final class Unzip {
       final ZipEntry entry = zip.getNextEntry();
       if (entry == null)
         return false;
-      if (!entry.isDirectory()) {
-        names.add(entry.getName());
-        blocks.add(readEntryData(zip, entry));
-      }
+      if (!entry.isDirectory())
+        items.add(new Item(entry.getName(), readEntryData(zip, (int)entry.getSize())));
       return true;
     } catch (final Exception e) {
-      Log.w("tinymod Unzip", e);
+      Log.w("tinymod", e);
       return false;
     }
   }
 
-  private byte[] readEntryData(final ZipInputStream zip, final ZipEntry entry) throws IOException {
+  private byte[] readEntryData(final ZipInputStream zip, final int size) throws IOException {
     try {
-      final int size = (int)entry.getSize();
       if (size < 0)
         return Empty;
       final byte[] b = new byte[size];
@@ -56,14 +55,28 @@ public final class Unzip {
   }
 
   public int size() {
-    return names.size();
+    return items.size();
   }
 
-  public byte[] getData(final int i) {
-    return blocks.get(i);
+  public Item getItem(final int i) {
+    return items.get(i);
   }
 
-  public String getName(final int i) {
-    return names.get(i);
+  public static class Item {
+    private final String name;
+    private final byte[] data;
+
+    public Item(final String name, final byte[] data) {
+      this.name = name;
+      this.data = data;
+    }
+
+    public byte[] getData() {
+      return data;
+    }
+
+    public String getName() {
+      return name;
+    }
   }
 }

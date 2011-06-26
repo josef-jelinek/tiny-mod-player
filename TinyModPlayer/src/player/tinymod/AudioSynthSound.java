@@ -1,6 +1,6 @@
 package player.tinymod;
 
-public final class SynthSound {
+public final class AudioSynthSound {
   private SynthInstrument instrument;
   private byte[] data;
   private int volume;
@@ -126,7 +126,7 @@ public final class SynthSound {
         periodDelta = (instrument.data(vibWf)[vibPos / 16] + 128) * 2 * vibDepth / 255 - vibDepth;
       } else {
         vibPos %= 32 * 16;
-        periodDelta = Sound.modulate(0, vibPos / 8, vibDepth * 2);
+        periodDelta = AudioSound.modulate(0, vibPos / 8, vibDepth * 2);
       }
       vibPos += vibSpeed;
     }

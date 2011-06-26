@@ -1,6 +1,6 @@
 package player.tinymod;
 
-public final class Sound {
+public final class AudioSound {
   private static final int[] sintab = {
       0, 24, 49, 74, 97, 120, 141, 161, 180, 197, 212, 224, 235, 244, 250, 253, 255, 253, 250, 244,
       235, 224, 212, 197, 180, 161, 141, 120, 97, 74, 49, 24, 0, -24, -49, -74, -97, -120, -141,
@@ -13,7 +13,7 @@ public final class Sound {
   private long step;
   private int end;
   private int fineTune;
-  private final SynthSound synth;
+  private final AudioSynthSound synth;
   private int lastKey;
   private int period;
   private int period0;
@@ -22,11 +22,11 @@ public final class Sound {
   private int lPan;
   private int rPan;
 
-  public Sound(final long stepForPeriod, final int left, final int right) {
+  public AudioSound(final long stepForPeriod, final int left, final int right) {
     this.stepForPeriod = stepForPeriod;
     lPan0 = left;
     rPan0 = right;
-    synth = new SynthSound();
+    synth = new AudioSynthSound();
     lPan = lPan0;
     rPan = rPan0;
     instrument = null;

@@ -5,17 +5,17 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 
 public final class AndroidAudioDevice implements AudioDevice {
+  private static final int MUSIC = AudioManager.STREAM_MUSIC;
+  private static final int STREAM = AudioTrack.MODE_STREAM;
+  private static final int STEREO = AudioFormat.CHANNEL_OUT_STEREO;
+  private static final int PCM16BIT = AudioFormat.ENCODING_PCM_16BIT;
   private final int sampleRateInHz;
   private final AudioTrack track;
 
   public AndroidAudioDevice(final int sampleRateInHz) {
     this.sampleRateInHz = sampleRateInHz;
-    final int minSize =
-        AudioTrack.getMinBufferSize(sampleRateInHz, AudioFormat.CHANNEL_OUT_STEREO,
-            AudioFormat.ENCODING_PCM_16BIT);
-    track =
-        new AudioTrack(AudioManager.STREAM_MUSIC, sampleRateInHz, AudioFormat.CHANNEL_OUT_STEREO,
-            AudioFormat.ENCODING_PCM_16BIT, minSize, AudioTrack.MODE_STREAM);
+    final int bufferSize = AudioTrack.getMinBufferSize(sampleRateInHz, STEREO, PCM16BIT);
+    track = new AudioTrack(MUSIC, sampleRateInHz, STEREO, PCM16BIT, bufferSize, STREAM);
     track.play();
   }
 

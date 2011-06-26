@@ -33,9 +33,4 @@ public final class SampledInstrument extends Instrument {
     data = newdata;
     loop(loopStart, loopLength);
   }
-
-  @Override
-  public String toString() {
-    return "Sampled " + super.toString();
-  }
 }

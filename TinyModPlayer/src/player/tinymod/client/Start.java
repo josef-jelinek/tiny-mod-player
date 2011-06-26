@@ -13,7 +13,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -27,21 +26,18 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
-public class Start extends ListActivity {
+public final class Start extends ListActivity {
   private static final String MEDIA_PATH = "/sdcard/Mods";
   private final List<String> songs = new ArrayList<String>();
   private final List<String> songPaths = new ArrayList<String>();
   private final static ModFilter filter = new ModFilter();
-  private Button playButton;
-  private Button pauseButton;
-  private Button stopButton;
+  private GuiControls guiControls = null;
   Messenger serviceMessenger = null;
   private final ServiceConnection serviceConnection = new ServiceConnection() {
     public void onServiceConnected(final ComponentName className, final IBinder service) {
       serviceMessenger = new Messenger(service);
-      Log.d("tinymod", "activity asking service for playing state");
+      Log.d("tinymod", "activity sending " + TinyModService.MSG_GET_PLAYING_STATE);
       sendMessage(Message.obtain(null, TinyModService.MSG_GET_PLAYING_STATE));
-      updateSongList();
     }
 
     public void onServiceDisconnected(final ComponentName className) {
@@ -53,16 +49,16 @@ public class Start extends ListActivity {
     @Override
     public void handleMessage(final Message message) {
       if (message.what == TinyModService.MSG_SET_PLAYING_STATE) {
-        Log.d("tinymod", "activity got a playing state message " + message.what + " " +
-            message.arg1);
+        Log.d("tinymod", "activity got message " + message.what + "(" + message.arg1 + ")");
         if (message.arg1 == TinyModService.PLAYING_STATE_PLAY)
-          showButtonsForPlay();
+          guiControls.showButtonsForPlay();
         else if (message.arg1 == TinyModService.PLAYING_STATE_PAUSE)
-          showButtonsForPause();
+          guiControls.showButtonsForPause();
         else
-          showButtonsForStop();
+          guiControls.showButtonsForStop();
+        updateSongList();
       } else {
-        Log.d("tinymod", "activity got an unknown message " + message.what);
+        Log.d("tinymod", "activity got message " + message.what);
         super.handleMessage(message);
       }
     }
@@ -70,15 +66,24 @@ public class Start extends ListActivity {
 
   @Override
   public void onCreate(final Bundle savedInstanceState) {
-    Log.d("tinymod", "activity created");
     super.onCreate(savedInstanceState);
-    setContentView(R.layout.mod_list);
-    playButton = (Button)findViewById(R.id.play);
-    pauseButton = (Button)findViewById(R.id.pause);
-    stopButton = (Button)findViewById(R.id.stop);
-    setButtonListeners();
+    Log.d("tinymod", "activity created");
+    initGui();
     setBroadcastReceivers();
-    showButtonsForStop();
+    connectPlayerService();
+  }
+
+  private void initGui() {
+    setContentView(R.layout.mod_list);
+    guiControls =
+        new GuiControls(findButton(R.id.play), findButton(R.id.pause), findButton(R.id.stop));
+  }
+
+  private Button findButton(final int id) {
+    return (Button)findViewById(id);
+  }
+
+  private void connectPlayerService() {
     final Intent intent = new Intent(this, TinyModService.class);
     startService(intent);
     if (!bindService(intent, serviceConnection, 0))
@@ -96,103 +101,31 @@ public class Start extends ListActivity {
     super.onDestroy();
   }
 
-  @Override
-  public void onConfigurationChanged(final Configuration newConfig) {}
-
-  private void setButtonListeners() {
-    playButton.setOnClickListener(new View.OnClickListener() {
-      public void onClick(final View v) {
-        playClicked();
-      }
-    });
-    pauseButton.setOnClickListener(new View.OnClickListener() {
-      public void onClick(final View v) {
-        pauseClicked();
-      }
-    });
-    stopButton.setOnClickListener(new View.OnClickListener() {
-      public void onClick(final View v) {
-        stopClicked();
-      }
-    });
-  }
-
   private void setBroadcastReceivers() {
     final BroadcastReceiver playReceiver = new BroadcastReceiver() {
       @Override
       public void onReceive(final Context context, final Intent intent) {
         Log.d("tinymod", "activity got PLAY broadcast");
-        showButtonsForPlay();
+        guiControls.showButtonsForPlay();
       }
     };
     final BroadcastReceiver pauseReceiver = new BroadcastReceiver() {
       @Override
       public void onReceive(final Context context, final Intent intent) {
         Log.d("tinymod", "activity got PAUSE broadcast");
-        showButtonsForPause();
+        guiControls.showButtonsForPause();
       }
     };
     final BroadcastReceiver stopReceiver = new BroadcastReceiver() {
       @Override
       public void onReceive(final Context context, final Intent intent) {
         Log.d("tinymod", "activity got STOP broadcast");
-        showButtonsForStop();
+        guiControls.showButtonsForStop();
       }
     };
     registerReceiver(playReceiver, new IntentFilter(getString(R.string.intent_action_play)));
     registerReceiver(pauseReceiver, new IntentFilter(getString(R.string.intent_action_pause)));
     registerReceiver(stopReceiver, new IntentFilter(getString(R.string.intent_action_stop)));
-  }
-
-  private void showButtonsForPlay() {
-    hideButton(playButton);
-    showButton(pauseButton);
-    stopButton.setEnabled(true);
-  }
-
-  private void showButtonsForPause() {
-    showButton(playButton);
-    hideButton(pauseButton);
-    stopButton.setEnabled(true);
-  }
-
-  private void showButtonsForStop() {
-    showButton(playButton);
-    hideButton(pauseButton);
-    stopButton.setEnabled(false);
-  }
-
-  private void showButton(final Button button) {
-    button.setEnabled(true);
-    button.setVisibility(View.VISIBLE);
-  }
-
-  private void hideButton(final Button button) {
-    button.setEnabled(false);
-    button.setVisibility(View.GONE);
-  }
-
-  private void playClicked() {
-    sendMessage(Message.obtain(null, TinyModService.MSG_PLAY));
-  }
-
-  private void pauseClicked() {
-    sendMessage(Message.obtain(null, TinyModService.MSG_PAUSE));
-  }
-
-  private void stopClicked() {
-    sendMessage(Message.obtain(null, TinyModService.MSG_STOP));
-  }
-
-  public void updateSongList() {
-    final List<File> fileList = listSongFiles(new File(MEDIA_PATH));
-    songs.clear();
-    songPaths.clear();
-    for (final File file : fileList) {
-      songs.add(file.getName());
-      songPaths.add(file.getAbsolutePath());
-    }
-    setListAdapter(new ArrayAdapter<String>(this, R.layout.mod_item, songs));
   }
 
   @Override
@@ -226,7 +159,90 @@ public class Start extends ListActivity {
   private static class ModFilter implements FilenameFilter {
     public boolean accept(final File dir, final String name) {
       final String s = name.toLowerCase();
-      return s.endsWith(".mod") || s.endsWith(".med") || s.endsWith(".mp3");
+      return s.endsWith(".mod") || s.endsWith(".med");
+    }
+  }
+
+  private void playClicked() {
+    sendMessage(Message.obtain(null, TinyModService.MSG_RESUME));
+  }
+
+  private void pauseClicked() {
+    sendMessage(Message.obtain(null, TinyModService.MSG_PAUSE));
+  }
+
+  private void stopClicked() {
+    sendMessage(Message.obtain(null, TinyModService.MSG_STOP));
+  }
+
+  public void updateSongList() {
+    final List<File> fileList = listSongFiles(new File(MEDIA_PATH));
+    songs.clear();
+    songPaths.clear();
+    for (final File file : fileList) {
+      songs.add(file.getName());
+      songPaths.add(file.getAbsolutePath());
+    }
+    setListAdapter(new ArrayAdapter<String>(this, R.layout.mod_item, songs));
+  }
+
+  private final class GuiControls {
+    private final Button playButton;
+    private final Button pauseButton;
+    private final Button stopButton;
+
+    public GuiControls(final Button play, final Button pause, final Button stop) {
+      playButton = play;
+      pauseButton = pause;
+      stopButton = stop;
+      setButtonCallbacks();
+      showButtonsForStop();
+    }
+
+    public void setButtonCallbacks() {
+      playButton.setOnClickListener(new View.OnClickListener() {
+        public void onClick(final View v) {
+          playClicked();
+        }
+      });
+      pauseButton.setOnClickListener(new View.OnClickListener() {
+        public void onClick(final View v) {
+          pauseClicked();
+        }
+      });
+      stopButton.setOnClickListener(new View.OnClickListener() {
+        public void onClick(final View v) {
+          stopClicked();
+        }
+      });
+    }
+
+    public void showButtonsForPlay() {
+      hideButton(playButton);
+      showButton(pauseButton);
+      stopButton.setEnabled(true);
+    }
+
+    public void showButtonsForPause() {
+      showButton(playButton);
+      hideButton(pauseButton);
+      stopButton.setEnabled(true);
+    }
+
+    public void showButtonsForStop() {
+      showButton(playButton);
+      hideButton(pauseButton);
+      stopButton.setEnabled(false);
+    }
+
+    private void showButton(final Button button) {
+      button.setEnabled(true);
+      button.setVisibility(View.VISIBLE);
+    }
+
+    private void hideButton(final Button button) {
+      button.setEnabled(false);
+      button.setVisibility(View.GONE);
     }
   }
 }

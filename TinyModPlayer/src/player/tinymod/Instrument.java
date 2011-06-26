@@ -66,14 +66,4 @@ public abstract class Instrument {
   public final void decay(final int decay) {
     this.decay = decay;
   }
-
-  @Override
-  public String toString() {
-    String s = "instrument " + id + ":";
-    s += " Volume=" + volume + " Loop=" + loopStart + "/" + loopLength;
-    s += " Tune=" + fineTune;
-    s += " Transpose=" + transpose;
-    s += " Hold/Decay=" + hold + "/" + decay;
-    return s;
-  }
 }

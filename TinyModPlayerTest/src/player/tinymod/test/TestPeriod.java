@@ -35,6 +35,14 @@ public class TestPeriod extends TestCase {
     assertEquals(0, Period.getKeyForPeriod(0));
   }
 
+  public void testKeyName() {
+    assertEquals("C-4", Period.getKeyName(KEY_C2, false));
+    assertEquals("C-5", Period.getKeyName(KEY_C3, true));
+    assertEquals("C#4", Period.getKeyName(KEY_Cs2, false));
+    assertEquals(" - ", Period.getKeyName(0, false));
+    assertEquals(" | ", Period.getKeyName(0, true));
+  }
+
   public void testSnapPeriod() {
     assertTrue(PERIOD_C2 == Period.snapPeriod(Period.getPeriodForKey(KEY_C2, 3)));
     assertTrue(PERIOD_C2 != Period.snapPeriod(Period.getPeriodForKey(KEY_C2, 5)));

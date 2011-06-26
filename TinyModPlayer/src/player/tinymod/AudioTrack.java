@@ -1,6 +1,6 @@
 package player.tinymod;
 
-public final class Track {
+public final class AudioTrack {
   private static final int NONE = -1;
   private static final int ARPEGGIO = 0;
   private static final int PORTA_UP = 1;
@@ -15,8 +15,8 @@ public final class Track {
   private static final int CUT_NOTE = 10;
   private static final int DELAY_NOTE = 11;
   private static final int DELAY_RETRIG_NOTE = 12;
-  private final Sound sound;
-  private Instrument nextSample;
+  private final AudioSound sound;
+  private Instrument nextInstrument;
   private int nextVolume;
   private boolean stopNote;
   private int volume;
@@ -31,8 +31,8 @@ public final class Track {
   private int retrigKey;
   private int retrigVolume;
   private int effect;
-  private int paramX;
-  private int paramY;
+  private int currentParamX;
+  private int currentParamY;
   private int effectCounter;
   private final int[] arpeggioNotes = new int[3];
   private int portaSpeed;
@@ -48,9 +48,9 @@ public final class Track {
   private int tremoloIndex;
   private int retrigSpeed;
 
-  public Track(final long stepForPeriod, final int left, final int right) {
-    sound = new Sound(stepForPeriod, left, right);
-    nextSample = null;
+  public AudioTrack(final long stepForPeriod, final int left, final int right) {
+    sound = new AudioSound(stepForPeriod, left, right);
+    nextInstrument = null;
     nextVolume = -1;
     stopNote = false;
     volume = 0;
@@ -65,8 +65,8 @@ public final class Track {
     retrigKey = 0;
     retrigVolume = -1;
     effect = NONE;
-    paramX = 0;
-    paramY = 0;
+    currentParamX = 0;
+    currentParamY = 0;
     effectCounter = 0;
     arpeggioNotes[0] = -1;
     portaSpeed = 0;
@@ -91,28 +91,27 @@ public final class Track {
   public void doTrack(final Note note) {
     effect = NONE;
     restoreTone();
-    final int eff = note.effect;
-    final int efx = paramX = note.paramX;
-    final int efy = paramY = note.paramY;
+    final int efx = currentParamX = note.paramX;
+    final int efy = currentParamY = note.paramY;
     final int efxy = efx * 16 + efy;
     nextVolume = -1;
-    if (note.sample != null) {
-      nextSample = note.sample;
-      nextVolume = nextSample.volume;
-      nextHold = nextSample.hold == 0 ? -1 : nextSample.hold;
-      nextDecay = nextSample.decay;
+    if (note.instrument != null) {
+      nextInstrument = note.instrument;
+      nextVolume = nextInstrument.volume;
+      nextHold = nextInstrument.hold == 0 ? -1 : nextInstrument.hold;
+      nextDecay = nextInstrument.decay;
     }
     nextKey = 0;
     if (note.key == 128) // stop note
       stopNote = true;
-    if (eff == 0x3 || eff == 0x5)
+    if (note.effect == 0x3 || note.effect == 0x5)
       switchInstrument(); // only change instrument and volume if appropriate
     else {
       nextKey = note.key;
-      if ((eff != 0xED || efxy == 0) && eff != 0xFD)
+      if ((note.effect != 0xED || efxy == 0) && note.effect != 0xFD)
         playNote(); // not portamente to note or delay note or pitch change -> play note
     }
-    switch (eff) {
+    switch (note.effect) {
     case 0x00: // arpeggio - chord simulation
       if (efxy != 0) {
         if (note.key > 0)
@@ -144,7 +143,7 @@ public final class Track {
       if (efx != 0)
         vibratoSpeed = efx;
       if (efy != 0)
-        vibratoDepth = efy * (eff == 0x4 ? 2 : 4);
+        vibratoDepth = efy * (note.effect == 0x4 ? 2 : 4);
       break;
     case 0x05: // portamente to note + volume slide (param. is for volume)
       effect = PORTA_VOLUME_SLIDE;
@@ -301,21 +300,22 @@ public final class Track {
       sound.setKeyPeriod(arpeggioNotes[effectCounter]);
       effectCounter = (effectCounter + 1) % 3;
     } else if (effect == TREMOLO) { // tremolo
-      tempVolume(volume + Sound.waveform(tremoloWaveform & 3, tremoloIndex) * tremoloDepth / 255);
+      tempVolume(volume + AudioSound.waveform(tremoloWaveform & 3, tremoloIndex) * tremoloDepth /
+          255);
       tremoloIndex = (tremoloIndex + tremoloSpeed) % 63;
     } else if (effect == PORTA_UP) { // portamente up
       if (!newLine)
-        sound.modPeriod(-(paramX * 16 + paramY));
+        sound.modPeriod(-(currentParamX * 16 + currentParamY));
     } else if (effect == PORTA_DOWN)
       if (!newLine)
-        sound.modPeriod(paramX * 16 + paramY);
+        sound.modPeriod(currentParamX * 16 + currentParamY);
     if (effect == VIBRATO || effect == VIBRATO_VOLUME_SLIDE) { // vibrato (+ volume slide)
       sound.vibrato(vibratoWaveform & 3, vibratoIndex, vibratoDepth);
       vibratoIndex = (vibratoIndex + vibratoSpeed) % 63;
     }
     if (effect == VOLUME_SLIDE || effect == PORTA_VOLUME_SLIDE || effect == VIBRATO_VOLUME_SLIDE)
       if (!newLine)
-        volume(volume + paramX - paramY);
+        volume(volume + currentParamX - currentParamY);
     if (effect == PORTA || effect == PORTA_VOLUME_SLIDE)
       if (!newLine)
         sound.toKey(portaKey, portaSpeed, glissando);
@@ -328,15 +328,23 @@ public final class Track {
         if ((fade = decay) == 0)
           volume(0);
     volume(volume - fade);
-    //fade = Math.min(fade, volume);
+    //    if (hold >= 0)
+    //      hold--;
+    //    if (hold < 0)
+    //      if (!sound.decay(decay)) {
+    //        fade = decay;
+    //        if (fade == 0)
+    //          volume(0);
+    //      }
+    //    volume(volume - fade);
   }
 
   private void playNote() {
     retrigKey = nextKey;
     retrigVolume = nextVolume;
     if (nextKey > 0 && nextKey < 128) {
-      sound.play(nextKey, nextSample);
-      nextSample = null;
+      sound.play(nextKey, nextInstrument);
+      nextInstrument = null;
       nextKey = 0;
       hold = nextHold;
       decay = nextDecay;
@@ -352,8 +360,8 @@ public final class Track {
     if (nextVolume >= 0 && nextHold < 0)
       volume(nextVolume);
     nextVolume = -1;
-    sound.switchTo(nextSample);
-    nextSample = null;
+    sound.switchTo(nextInstrument);
+    nextInstrument = null;
   }
 
   private void volume(final int vol) {
