@@ -11,19 +11,21 @@ public final class Mod {
   public int songLength;
   public int[] order = new int[256];
   public Block[] blocks;
-  public int tracks;
   public int mainVolume = 64;
-  public int[] trackVolumes = new int[64];
+  public final int tracks;
+  public final int[] trackVolumes;
   public boolean filter = false;
-  public int beatsPerMinute = 125; // beats per minute
-  public int linesPerBeat = 0; // lines per beat (= 0 if tpb != 0)
-  public int ticksPerBeat = 24; // ticks per beat (= 0 if lpb != 0)
-  public int ticksPerLine = 6; // ticks per line
+  public int beatsPerMinute = 125;
+  public int linesPerBeat = 0; // = 0 if ticksPerBeat != 0
+  public int ticksPerBeat = 24; // = 0 if linesPerBeat != 0
+  public int ticksPerLine = 6;
   public int transpose = 0;
   public boolean doFirstLineTick = false;
 
-  public Mod(final String id) {
+  public Mod(final String id, final int tracks) {
     this.id = id;
+    this.tracks = tracks;
+    trackVolumes = new int[tracks];
     for (int i = 0; i < trackVolumes.length; i++)
       trackVolumes[i] = 64;
   }
@@ -35,44 +37,48 @@ public final class Mod {
     data.seek(1080);
     final String id = data.string(4); // read identification
     int totalInstruments = 31;
-    final Mod mod = new Mod(id);
-    mod.tracks = 4;
+    int tracks = 4;
     if (isNChn(id))
-      mod.tracks = DIGITS.indexOf(id.charAt(0));
+      tracks = DIGITS.indexOf(id.charAt(0));
     else if (isNnCh(id))
-      mod.tracks = DIGITS.indexOf(id.charAt(0)) * 10 + DIGITS.indexOf(id.charAt(1));
-    // FLT8 uses 2 patterns as one; not one 8 track pattern... (numbers in playing sequence should be divided by 2)
+      tracks = DIGITS.indexOf(id.charAt(0)) * 10 + DIGITS.indexOf(id.charAt(1));
+    // TODO FLT8 uses 2 patterns as one; not one 8 track pattern... (numbers in playing sequence should be divided by 2)
     else if (!isStandardTracker(id))
       totalInstruments = 15; // assume old-style .MOD (N.T.)
     data.seek(0);
     final String title = data.string(20); // read title
-    mod.title = title;
-    mod.instruments = new Instrument[totalInstruments];
-    for (int smp = 0; smp < mod.instruments.length; smp++)
+    final Instrument[] instruments = new Instrument[totalInstruments];
+    for (int i = 0; i < instruments.length; i++)
       // read all samples (30*sample bytes)
-      mod.instruments[smp] = readModInstrument(data, smp);
-    mod.songLength = data.u1(); // read block length
+      instruments[i] = readModInstrument(data, i);
+    final int songLength = data.u1();
     data.u1(); // skip block repeat or 128 etc.
-    for (int i = 0; i < 128; i++)
-      mod.order[i] = data.u1();
+    final int[] order = new int[128];
+    for (int i = 0; i < order.length; i++)
+      order[i] = data.u1();
     int numBlocks = 0;
-    for (int i = 0; i < 128; i++)
-      // read block order
-      numBlocks = Math.max(numBlocks, mod.order[i]);
+    for (final int element : order)
+      numBlocks = Math.max(numBlocks, element);
     numBlocks++;
     if (totalInstruments == 31)
       data.s4(); // skip id
-    mod.blocks = new Block[numBlocks];
+    final Block[] blocks = new Block[numBlocks];
     for (int block = 0; block < numBlocks; block++)
-      mod.blocks[block] = readModBlock(data, mod);
-    for (int i = 0; i < mod.instruments.length; i++)
-      for (int j = 0; j < mod.instruments[i].data().length; j++) {
+      blocks[block] = readModBlock(data, tracks, instruments);
+    for (int i = 0; i < instruments.length; i++)
+      for (int j = 0; j < instruments[i].data().length; j++) {
         if (data.isEnd()) {
-          mod.instruments[i].trimTo(j);
+          instruments[i].trimTo(j);
           break;
         }
-        mod.instruments[i].data()[j] = data.s1();
+        instruments[i].data()[j] = data.s1();
       }
+    final Mod mod = new Mod(id, tracks);
+    mod.title = title;
+    mod.instruments = instruments;
+    mod.songLength = songLength;
+    mod.order = order;
+    mod.blocks = blocks;
     return mod;
   }
 
@@ -104,10 +110,11 @@ public final class Mod {
     return instrument;
   }
 
-  private static Block readModBlock(final ByteReader data, final Mod mod) {
-    final Block block = new Block(64, mod.tracks);
+  private static Block readModBlock(final ByteReader data, final int tracks,
+      final Instrument[] instruments) {
+    final Block block = new Block(64, tracks);
     for (int line = 0; line < 64; line++)
-      for (int trk = 0; trk < mod.tracks; trk++) {
+      for (int trk = 0; trk < tracks; trk++) {
         final int b0 = data.u1();
         final int b1 = data.u1();
         final int b2 = data.u1();
@@ -128,8 +135,8 @@ public final class Mod {
           efy = dec & 15;
         }
         final Instrument instrument =
-            instrumentIndex < 0 || instrumentIndex >= mod.instruments.length ? null
-                : mod.instruments[instrumentIndex];
+            instrumentIndex < 0 || instrumentIndex >= instruments.length ? null
+                : instruments[instrumentIndex];
         block.putNote(line, trk, new Note(key, instrument, eff, efx, efy, false));
       }
     return block;
@@ -141,7 +148,6 @@ public final class Mod {
     final String id = data.string(4);
     if (!id.equals("MMD0") && !id.equals("MMD1"))
       return null;
-    final Mod mod = new Mod(id);
     data.s4(); // mod length
     final int song = data.s4(); // MMD0Song
     data.s4(); // reserved
@@ -160,57 +166,56 @@ public final class Mod {
     data.seek(song);
     // MMD0Song
     data.skip(63 * 8); // skip MMD0Sample - to be read later
-    mod.blocks = new Block[data.u2()]; // length of blockarr in longwords
-    mod.songLength = data.u2();
+    final Block[] blocks = new Block[data.u2()]; // length of blockarr in longwords
+    int songLength = data.u2();
+    final int[] order = new int[256];
     for (int i = 0, j = 0; i < 256; i++) { // playseq[256]
-      mod.order[j] = data.u1();
-      if (j < mod.songLength && mod.order[j] >= mod.blocks.length)
-        mod.songLength--; // skip an illegal position
+      order[j] = data.u1();
+      if (j < songLength && order[j] >= blocks.length)
+        songLength--; // skip an illegal position
       else
         j++;
     }
     final int tempo = Math.max(1, data.u2());
-    mod.transpose = data.s1();
+    final int transpose = data.s1();
     final int flags = data.u1(); // 0 - filter, 4 - hex volumes, 5 - ST/NT/PT slide, 6 - 5-8 channels
-    mod.filter = (flags & 1) != 0;
+    final boolean filter = (flags & 1) != 0;
     final boolean hexVol = (flags & 16) != 0;
-    mod.doFirstLineTick = (flags & 32) == 0;
+    final boolean doFirstLineTick = (flags & 32) == 0;
     final boolean chan5to8 = (flags & 64) != 0;
     final int flags2 = data.u1(); // 0-4 lines per beat 0~1,31~32, 5 - bpm mode, 7 - !mix mode
     final boolean mixMode = (flags2 & 128) == 0; // sampled instruments above 3rd octave should play as in 3rd octave
     boolean bpmMode = (flags2 & 32) != 0; // all tempos given in bpm
-    mod.linesPerBeat = bpmMode ? (flags2 & 31) + 1 : 0; // 0 - do not use lpb - use constant tpb instead
-    mod.ticksPerLine = crop(data.u1(), 1, 60); // ticks per line
-    mod.beatsPerMinute = bpmMode ? tempo : tempo * 125 / 33;
+    int linesPerBeat = bpmMode ? (flags2 & 31) + 1 : 0; // 0 - do not use lpb - use constant tpb instead
+    int ticksPerLine = crop(data.u1(), 1, 60); // ticks per line
+    int beatsPerMinute = bpmMode ? tempo : tempo * 125 / 33;
     if (chan5to8) { // tempo in 5-8 channel modules was determined by a size of the mix buffer (0-9)
       bpmMode = true;
-      mod.linesPerBeat = 4;
-      mod.beatsPerMinute = tempo >= 10 ? 99 : bpm1to9[tempo - 1];
+      linesPerBeat = 4;
+      beatsPerMinute = tempo >= 10 ? 99 : bpm1to9[tempo - 1];
     }
-    if (mod.linesPerBeat != 0)
-      mod.ticksPerBeat = 0;
     if (!bpmMode && tempo < 12) { // just guessing here...
-      mod.ticksPerLine = tempo;
-      mod.beatsPerMinute = 125;
+      ticksPerLine = tempo;
+      beatsPerMinute = 125;
     }
     // I hope: 50 Hz ~ standard tempo 33 if not BpM mode
-    for (int trk = 0; trk < 16; trk++)
-      // trkvol[16]
-      mod.trackVolumes[trk] = crop(data.u1(), 0, 64);
-    mod.mainVolume = crop(data.u1(), 0, 64);
-    mod.instruments = new Instrument[data.u1()]; // length of smplarr in longwords
+    final int[] trackVolumes = new int[16];
+    for (int i = 0; i < trackVolumes.length; i++)
+      trackVolumes[i] = crop(data.u1(), 0, 64);
+    final int mainVolume = crop(data.u1(), 0, 64);
+    final Instrument[] instruments = new Instrument[data.u1()]; // length of smplarr in longwords
     // process samples - must be done before processsing blocks (sample referencing)
     if (smplarr != 0)
-      for (int smp = 0; smp < mod.instruments.length; smp++) {
-        data.seek(smplarr + 4 * smp);
+      for (int i = 0; i < instruments.length; i++) {
+        data.seek(smplarr + 4 * i);
         final int samplep = data.s4();
         if (samplep != 0) {
           data.seek(samplep);
-          readMedInstrument(data, mod, smp, samplep);
+          instruments[i] = readMedInstrument(data, i, samplep);
         }
       }
     data.seek(song);
-    for (final Instrument instrument : mod.instruments) { // MMD0Sample[63] at the start of MMD0Song
+    for (final Instrument instrument : instruments) { // MMD0Sample[63] at the start of MMD0Song
       final int rep = data.w2();
       final int replen = data.w2();
       data.skip(2); // 1midich 1midipreset
@@ -230,14 +235,15 @@ public final class Mod {
       }
     }
     // process blocks
-    mod.tracks = 4;
+    int tracks = 4;
     if (blockarr != 0)
-      for (int block = 0; block < mod.blocks.length; block++) {
+      for (int block = 0; block < blocks.length; block++) {
         data.seek(blockarr + 4 * block);
         final int blockp = data.s4();
         if (blockp != 0) {
           data.seek(blockp);
-          mod.blocks[block] = readMedBlock(data, id, mod, hexVol, chan5to8, bpmMode);
+          blocks[block] = readMedBlock(data, id, instruments, hexVol, chan5to8, bpmMode);
+          tracks = Math.max(tracks, blocks[block].getNumberOfTracks());
         }
       }
     // process expdata
@@ -251,59 +257,76 @@ public final class Mod {
       if (expSmp != 0 && expSmpSz >= 2) {
         data.seek(expSmp);
         for (int smp = 0; smp < expSmps; smp++) {
-          if (smp >= mod.instruments.length || mod.instruments[smp] == null) {
+          if (smp >= instruments.length || instruments[smp] == null) {
             data.skip(expSmpSz);
             continue;
           }
-          mod.instruments[smp].hold(data.u1());
-          mod.instruments[smp].decay(data.u1());
+          instruments[smp].hold(data.u1());
+          instruments[smp].decay(data.u1());
           if (expSmpSz < 4) {
             data.skip(expSmpSz - 2);
             continue;
           }
           data.u1(); // supress midi off
-          mod.instruments[smp].fineTune(data.s1());
+          instruments[smp].fineTune(data.s1());
           data.skip(expSmpSz - 4);
         }
       }
     }
+    final Mod mod = new Mod(id, tracks);
+    mod.filter = filter;
+    mod.blocks = blocks;
+    mod.songLength = songLength;
+    mod.order = order;
+    mod.instruments = instruments;
+    mod.transpose = transpose;
+    mod.doFirstLineTick = doFirstLineTick;
+    mod.linesPerBeat = linesPerBeat;
+    mod.ticksPerLine = ticksPerLine;
+    mod.beatsPerMinute = beatsPerMinute;
+    if (linesPerBeat != 0)
+      mod.ticksPerBeat = 0;
+    mod.mainVolume = mainVolume;
+    for (int i = 0; i < tracks; i++)
+      mod.trackVolumes[i] = trackVolumes[i];
     return mod;
   }
 
-  private static void readMedInstrument(final ByteReader data, final Mod mod, final int smp,
+  private static Instrument readMedInstrument(final ByteReader data, final int index,
       final int samplep) {
     final int length = data.s4();
     final int type = data.s2();
     if (type > 0)
       Log.i("tinymod", "Unsupported sample type " + type);
     if (type == 0) {
-      mod.instruments[smp] = new SampledInstrument(smp + 1, length);
+      final Instrument instrument = new SampledInstrument(index + 1, length);
       for (int i = 0; i < length; i++)
-        mod.instruments[smp].data()[i] = data.s1();
-    } else if (type == -1 || type == -2) { // synth or hybrid
+        instrument.data()[i] = data.s1();
+      return instrument;
+    }
+    if (type == -1 || type == -2) { // synth or hybrid
       data.skip(8); // not used in modules
       final int voltbllen = data.u2();
       final int wftbllen = data.u2();
       final int volspeed = data.u1();
       final int wfspeed = data.u1();
       final int wforms = data.u2();
-      final SynthInstrument instr = new SynthInstrument(smp + 1, wforms, type == -2);
-      mod.instruments[smp] = instr;
-      instr.volSpeed(volspeed);
-      instr.wfSpeed(wfspeed);
-      instr.volData(voltbllen);
+      final SynthInstrument instrument = new SynthInstrument(index + 1, wforms, type == -2);
+      instrument.volSpeed(volspeed);
+      instrument.wfSpeed(wfspeed);
+      instrument.volData(voltbllen);
       for (int vol = 0; vol < voltbllen; vol++) {
         final int x = data.u1();
-        instr.volData[vol] = (byte)x;
+        instrument.volData[vol] = (byte)x;
         if (x == 0xFF) {
           data.skip(voltbllen - vol - 1);
           break;
         }
       }
-      instr.wfData(wftbllen);
+      instrument.wfData(wftbllen);
       for (int wf = 0; wf < wftbllen; wf++) {
         final int x = data.u1();
-        instr.wfData[wf] = (byte)x;
+        instrument.wfData[wf] = (byte)x;
         if (x == 0xFF) {
           data.skip(wftbllen - wf - 1);
           break;
@@ -315,72 +338,74 @@ public final class Mod {
         final int wformp = data.s4();
         if (wformp != 0) {
           data.seek(wformp + samplep);
-          if (instr.synthWf(wform)) {
+          if (instrument.synthWf(wform)) {
             final int ln = data.w2();
-            instr.waveform(wform, ln);
+            instrument.waveform(wform, ln);
             for (int i = 0; i < ln; i++)
-              instr.data(wform)[i] = data.s1();
+              instrument.data(wform)[i] = data.s1();
           } else { // sampled waveform
             final int ln = data.s4();
             final int tp = data.s2();
             if (tp != 0)
-              Log.i("tinymod MED", "Illegal type of hybrid instrument waveform - " + tp);
-            instr.waveform(wform, ln);
+              Log.i("tinymod", "Illegal type of hybrid instrument waveform - " + tp);
+            instrument.waveform(wform, ln);
             for (int i = 0; i < ln; i++)
-              instr.data(wform)[i] = data.s1();
+              instrument.data(wform)[i] = data.s1();
           }
         }
       }
+      return instrument;
     }
+    return null;
   }
 
-  private static Block readMedBlock(final ByteReader data, final String id, final Mod mod,
-      final boolean hexVol, final boolean chan5to8, final boolean bpmMode) {
+  private static Block readMedBlock(final ByteReader data, final String id,
+      final Instrument[] instruments, final boolean hexVol, final boolean chan5to8,
+      final boolean bpmMode) {
     if (id.equals("MMD0")) {
       final int numtracks = data.u1();
-      mod.tracks = Math.max(mod.tracks, numtracks);
       final int lines = data.u1() + 1;
       final Block block = new Block(lines, numtracks);
       for (int line = 0; line < lines; line++)
         for (int track = 0; track < numtracks; track++)
-          block.putNote(line, track, readMmd0Note(data, mod, hexVol, chan5to8, bpmMode));
+          block.putNote(line, track, readMmd0Note(data, instruments, hexVol, chan5to8, bpmMode));
       return block;
     }
     if (id.equals("MMD1")) {
       final int numtracks = data.u2();
-      mod.tracks = Math.max(mod.tracks, numtracks);
       final int lines = data.u2() + 1;
       final Block block = new Block(lines, numtracks);
       data.s4(); // BlockInfo - unimportant for the player
       for (int line = 0; line < lines; line++)
         for (int track = 0; track < numtracks; track++)
-          block.putNote(line, track, readMmd1Note(data, mod, hexVol, chan5to8, bpmMode));
+          block.putNote(line, track, readMmd1Note(data, instruments, hexVol, chan5to8, bpmMode));
       return block;
     }
     return null;
   }
 
-  private static Note readMmd0Note(final ByteReader data, final Mod mod, final boolean hexVol,
-      final boolean chan5to8, final boolean bpmMode) {
+  private static Note readMmd0Note(final ByteReader data, final Instrument[] instruments,
+      final boolean hexVol, final boolean chan5to8, final boolean bpmMode) {
     final int b0 = data.u1();
     final int b1 = data.u1();
     final int b2 = data.u1();
     final int smp = (b0 >> 1 & 32 | b0 >> 3 & 16 | b1 >> 4 & 15) - 1;
-    return getMedNote(mod, b0 & 63, smp, medCommand(b1 & 15, b2, hexVol, chan5to8, bpmMode));
+    return getMedNote(instruments, b0 & 63, smp, medCommand(b1 & 15, b2, hexVol, chan5to8, bpmMode));
   }
 
-  private static Note readMmd1Note(final ByteReader data, final Mod mod, final boolean hexVol,
-      final boolean chan5to8, final boolean bpmMode) {
+  private static Note readMmd1Note(final ByteReader data, final Instrument[] instruments,
+      final boolean hexVol, final boolean chan5to8, final boolean bpmMode) {
     final int b0 = data.u1() & 127;
     final int b1 = data.u1() & 63;
     final int b2 = data.u1();
     final int b3 = data.u1();
     final int smp = b1 - 1;
-    return getMedNote(mod, b0, smp, medCommand(b2, b3, hexVol, chan5to8, bpmMode));
+    return getMedNote(instruments, b0, smp, medCommand(b2, b3, hexVol, chan5to8, bpmMode));
   }
 
-  private static Note getMedNote(final Mod mod, final int key, final int smp, final int effxy) {
-    final Instrument instr = smp < 0 || smp >= mod.instruments.length ? null : mod.instruments[smp];
+  private static Note getMedNote(final Instrument[] instruments, final int key, final int smp,
+      final int effxy) {
+    final Instrument instr = smp < 0 || smp >= instruments.length ? null : instruments[smp];
     return new Note(key, instr, effxy >> 8, effxy >> 4 & 15, effxy & 15, instr != null && key == 0);
   }
 
@@ -505,7 +530,7 @@ public final class Mod {
     final int ver = data.u1();
     if (!id.equals("THX") || ver > 1)
       return null;
-    final Mod mod = new Mod(id);
+    final Mod mod = new Mod(id, 4);
     data.u2(); // offset to title and sample names
     int len = data.u2(); // position list length + timing + track zero flag
     //mod.tps = 50 + 50 * (len >> 12 & 7);

@@ -15,16 +15,16 @@ public final class ModPlayer {
   private boolean paused = false;
   private final boolean loop = false;
   private boolean filter;
-  private int tpl;
-  private int tpb;
-  private int bpm;
-  private int tps;
+  private int ticksPerLine;
+  private int ticksPerBeat;
+  private int beatsPerMinute;
+  private int ticksPerSecond;
   private int tick;
   private int line;
-  private int pos;
+  private int blockIndex;
   private int jumpLine;
-  private int jumpPos;
-  private boolean jump;
+  private int jumpBlockIndex;
+  private boolean isSetToJump;
   private int cycleLine;
   private int cycleTimes;
   private int blockDelay;
@@ -86,14 +86,14 @@ public final class ModPlayer {
     int todo = size;
     while (todo > 0) {
       if (bytesLeft == 0) {
-        bytesLeft = audioDevice.getSampleRateInHz() / tps;
+        bytesLeft = audioDevice.getSampleRateInHz() / ticksPerSecond;
         if (tick == 0 && blockDelay > 0)
           blockDelay--;
         else if (tick == 0)
           doLine();
         for (int i = 0; i < mod.tracks; i++)
           track[i].doEffects(!mod.doFirstLineTick && tick == 0);
-        tick = (tick + 1) % tpl;
+        tick = (tick + 1) % ticksPerLine;
       }
       final int amount = Math.min(bytesLeft, todo);
       for (int i = 0; i < mod.tracks; i++)
@@ -106,16 +106,16 @@ public final class ModPlayer {
 
   private void reset() {
     filter = mod.filter;
-    tpl = mod.ticksPerLine;
-    tpb = mod.linesPerBeat > 0 ? tpl * mod.linesPerBeat : mod.ticksPerBeat;
-    bpm = mod.beatsPerMinute;
-    tps = tpb * bpm / 60;
+    ticksPerLine = mod.ticksPerLine;
+    ticksPerBeat = mod.linesPerBeat > 0 ? ticksPerLine * mod.linesPerBeat : mod.ticksPerBeat;
+    beatsPerMinute = mod.beatsPerMinute;
+    ticksPerSecond = ticksPerBeat * beatsPerMinute / 60;
     tick = 0;
-    pos = 0;
+    blockIndex = 0;
     line = 0;
     jumpLine = 0;
-    jumpPos = 0;
-    jump = false;
+    jumpBlockIndex = 0;
+    isSetToJump = false;
     cycleLine = 0;
     cycleTimes = 0;
     blockDelay = 0;
@@ -129,27 +129,27 @@ public final class ModPlayer {
   }
 
   private void doLine() {
-    final Block block = mod.blocks[mod.order[pos]];
+    final Block block = mod.blocks[mod.order[blockIndex]];
     if (line == 0)
-      Log.d("tinymod", ">> " + pos + "(" + mod.order[pos] + ")");
-    Log.d("tinymod", "" + line / 100 % 10 + line / 10 % 10 + line % 10 + block.lineString(line));
-    for (int i = 0; i < block.tracks(line); i++)
-      track[i].doTrack(block.note(line, i)); // update sound (volume and pitch)
-    for (int i = 0; i < block.tracks(line); i++)
-      doTrack(block.note(line, i)); // update control (global)
+      Log.d("tinymod", "#" + blockIndex + " (" + mod.order[blockIndex] + ")");
+    Log.d("tinymod", block.lineString(line));
+    for (int i = 0; i < block.getNumberOfTracks(); i++) {
+      track[i].doTrack(block.getNote(line, i)); // update sound (volume and pitch)
+      doTrack(block.getNote(line, i)); // update control (global)
+    }
     nextPos();
-    for (int i = 0; i < block.tracks(line); i++)
-      track[i].checkHold(block.note(line, i), tpl);
+    for (int i = 0; i < block.getNumberOfTracks(); i++)
+      track[i].checkHold(block.getNote(line, i), ticksPerLine);
   }
 
   private void doTrack(final Note note) {
     final int efxy = note.paramX * 16 + note.paramY;
     switch (note.effect) {
     case 0x0B: // jump to block
-      jump(efxy == 0 ? pos + 1 : efxy, 0);
+      jump(efxy == 0 ? blockIndex + 1 : efxy, 0);
       break;
     case 0x0D: // block break (to the specified line) (originally dec - converted to hex)
-      jump(pos + 1, efxy);
+      jump(blockIndex + 1, efxy);
       break;
     case 0xE0: // amiga filter
       filter = efxy != 0;
@@ -162,49 +162,51 @@ public final class ModPlayer {
       break;
     case 0x0F: // set tpl / bpm
       if (efxy <= 32) { // set ticks/line (can be < 32)
-        tpl = Math.max(1, efxy); // default 6 ticks/line
-        tpb = mod.linesPerBeat > 0 ? tpl * mod.linesPerBeat : mod.ticksPerBeat;
+        ticksPerLine = Math.max(1, efxy); // default 6 ticks/line
+        ticksPerBeat = mod.linesPerBeat > 0 ? ticksPerLine * mod.linesPerBeat : mod.ticksPerBeat;
       } else
-        bpm = efxy; // default 50 tps ~ 125 bpm
-      tps = tpb * bpm / 60;
+        beatsPerMinute = efxy; // default 50 tps ~ 125 bpm
+      ticksPerSecond = ticksPerBeat * beatsPerMinute / 60;
       break;
     }
   }
 
   private void nextPos() {
-    if (jump) {
-      if (!loop && cycleTimes == 0 && (jumpPos < pos || jumpPos == pos && jumpLine <= line)) {
+    if (isSetToJump) {
+      if (!loop && cycleTimes == 0 &&
+          (jumpBlockIndex < blockIndex || jumpBlockIndex == blockIndex && jumpLine <= line)) {
         reset();
         active = false;
         return;
       }
-      if (jumpPos != pos) {
+      if (jumpBlockIndex != blockIndex) {
         cycleLine = 0;
         cycleTimes = 0;
       }
-      pos = jumpPos;
+      blockIndex = jumpBlockIndex;
       line = jumpLine;
-      jump = false;
+      isSetToJump = false;
     } else
       line++;
-    while (pos < mod.songLength && line >= mod.blocks[mod.order[pos]].lines()) {
-      line -= mod.blocks[mod.order[pos]].lines();
-      pos++;
+    while (blockIndex < mod.songLength &&
+        line >= mod.blocks[mod.order[blockIndex]].getNumberOfLines()) {
+      line -= mod.blocks[mod.order[blockIndex]].getNumberOfLines();
+      blockIndex++;
       cycleLine = 0;
       cycleTimes = 0;
     }
-    if (pos >= mod.songLength) {
+    if (blockIndex >= mod.songLength) {
       reset();
       active = loop;
     }
   }
 
-  private void jump(final int jPos, final int jLine) {
-    if (jump)
+  private void jump(final int block, final int line) {
+    if (isSetToJump)
       return;
-    jumpLine = jLine;
-    jumpPos = jPos;
-    jump = true;
+    jumpLine = line;
+    jumpBlockIndex = block;
+    isSetToJump = true;
   }
 
   private void cycle(final int counter) {
@@ -212,11 +214,11 @@ public final class ModPlayer {
       cycleLine = line;
     else if (cycleTimes == 0) { // first iteration (counter > 0)
       cycleTimes = counter;
-      jump(pos, cycleLine);
+      jump(blockIndex, cycleLine);
     } else if (counter > 0) { // cycle update (cycleTimes > 0)
       cycleTimes--;
       if (cycleTimes > 0)
-        jump(pos, cycleLine);
+        jump(blockIndex, cycleLine);
       else
         cycleLine = line + 1; // set loop start to prevent infinite loops S3M/IT
     }
