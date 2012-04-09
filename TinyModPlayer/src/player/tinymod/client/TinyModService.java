@@ -1,20 +1,12 @@
 package player.tinymod.client;
 
-import java.io.File;
-import java.io.FileInputStream;
-import player.tinymod.AndroidAudioDevice;
-import player.tinymod.Mod;
-import player.tinymod.ModPlayer;
-import player.tinymod.R;
-import android.app.Notification;
-import android.app.PendingIntent;
-import android.app.Service;
+import java.io.*;
+import java.util.*;
+import player.tinymod.*;
+import player.tinymod.audio.AndroidAudioDevice;
+import android.app.*;
 import android.content.Intent;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
+import android.os.*;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -30,6 +22,7 @@ public class TinyModService extends Service {
   static final int PLAYING_STATE_STOP = 2;
   static final int PLAYING_STATE_END = 3;
   private final ModPlayer player = new ModPlayer(new AndroidAudioDevice(44100), true);
+  private static final List<Parser> parsers = new ArrayList<Parser>();
   private final Messenger messenger = new Messenger(new Handler() {
     @Override
     public void handleMessage(final Message message) {
@@ -48,6 +41,10 @@ public class TinyModService extends Service {
         super.handleMessage(message);
     }
   });
+  static {
+    parsers.add(new ParserMed());
+    parsers.add(new ParserMod());
+  }
 
   @Override
   public void onDestroy() {
@@ -94,12 +91,18 @@ public class TinyModService extends Service {
       Log.e("tinymod", e.getMessage(), e);
       return;
     }
-    if (file.getName().toLowerCase().endsWith(".med"))
-      playLoop(Mod.parseMed(data), file.getName());
-    else if (file.getName().toLowerCase().endsWith(".mod"))
-      playLoop(Mod.parseMod(data), file.getName());
-    else
-      Toast.makeText(this, "Unknown format", Toast.LENGTH_SHORT);
+    for (Parser parser : parsers) {
+      if (parser.test(data)) {
+        Mod mod = parser.parse(data);
+        if (mod == null) {
+          Toast.makeText(this, "Failed to load as " + parser.name(), Toast.LENGTH_SHORT);
+        } else {
+          playLoop(mod, file.getName());
+          return;
+        }
+      }
+    }
+    Toast.makeText(this, "Unknown format", Toast.LENGTH_SHORT);
   }
 
   private Thread playThread = null;
@@ -173,24 +176,38 @@ public class TinyModService extends Service {
           player.isActive() ? player.isPaused() ? PLAYING_STATE_PAUSE : PLAYING_STATE_PLAY
               : PLAYING_STATE_STOP;
       Log.d("tinymod", "service sent playing state message " + state + " " + messenger.getClass());
-      messenger.send(Message.obtain(null, MSG_SET_PLAYING_STATE, state, 0));
+      messenger.send(createPlayingStateMessage(state));
     } catch (final RemoteException e) {
       Log.e("tinymod", e.getMessage(), e);
     }
   }
 
+  private Message createPlayingStateMessage(final int state) {
+    final Message message = Message.obtain(null, MSG_SET_PLAYING_STATE, state, 0);
+    final Bundle bundle = new Bundle();
+    bundle.putString("info", player.toString());
+    message.setData(bundle);
+    return message;
+  }
+
   private void broadcastPlayState() {
     Log.d("tinymod", "service broadcasting play");
-    sendBroadcast(new Intent(getString(R.string.intent_action_play)));
+    sendBroadcastWithInfo(R.string.intent_action_play);
   }
 
   private void broadcastPauseState() {
     Log.d("tinymod", "service broadcasting pause");
-    sendBroadcast(new Intent(getString(R.string.intent_action_pause)));
+    sendBroadcastWithInfo(R.string.intent_action_pause);
   }
 
   private void broadcastStopState() {
     Log.d("tinymod", "service broadcasting stop");
-    sendBroadcast(new Intent(getString(R.string.intent_action_stop)));
+    sendBroadcastWithInfo(R.string.intent_action_stop);
+  }
+
+  private void sendBroadcastWithInfo(final int id) {
+    final Intent intent = new Intent(getString(id));
+    intent.putExtra("info", player.toString());
+    sendBroadcast(intent);
   }
 }

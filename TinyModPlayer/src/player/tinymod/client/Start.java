@@ -4,7 +4,10 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import player.tinymod.R;
 import android.app.ListActivity;
 import android.content.BroadcastReceiver;
@@ -24,15 +27,19 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public final class Start extends ListActivity {
   private static final String MEDIA_PATH = "/sdcard/Mods";
   private final List<String> songs = new ArrayList<String>();
-  private final List<String> songPaths = new ArrayList<String>();
+  private final Map<String, String> songPaths = new HashMap<String, String>();
   private final static ModFilter filter = new ModFilter();
   private GuiControls guiControls = null;
   Messenger serviceMessenger = null;
+  private BroadcastReceiver playReceiver;
+  private BroadcastReceiver pauseReceiver;
+  private BroadcastReceiver stopReceiver;
   private final ServiceConnection serviceConnection = new ServiceConnection() {
     public void onServiceConnected(final ComponentName className, final IBinder service) {
       serviceMessenger = new Messenger(service);
@@ -56,6 +63,7 @@ public final class Start extends ListActivity {
           guiControls.showButtonsForPause();
         else
           guiControls.showButtonsForStop();
+        guiControls.showInfo(message.getData().getString("info"));
         updateSongList();
       } else {
         Log.d("tinymod", "activity got message " + message.what);
@@ -76,11 +84,16 @@ public final class Start extends ListActivity {
   private void initGui() {
     setContentView(R.layout.mod_list);
     guiControls =
-        new GuiControls(findButton(R.id.play), findButton(R.id.pause), findButton(R.id.stop));
+        new GuiControls(findButton(R.id.play), findButton(R.id.pause), findButton(R.id.stop),
+            findText(R.id.text_info));
   }
 
   private Button findButton(final int id) {
     return (Button)findViewById(id);
+  }
+
+  private TextView findText(final int id) {
+    return (TextView)findViewById(id);
   }
 
   private void connectPlayerService() {
@@ -95,6 +108,9 @@ public final class Start extends ListActivity {
     Log.d("tinymod", "activity destroyed");
     try {
       unbindService(serviceConnection);
+      unregisterReceiver(playReceiver);
+      unregisterReceiver(pauseReceiver);
+      unregisterReceiver(stopReceiver);
     } catch (final Throwable t) {
       Log.e("tinymod", "Failed to unbind from the service", t);
     }
@@ -102,21 +118,22 @@ public final class Start extends ListActivity {
   }
 
   private void setBroadcastReceivers() {
-    final BroadcastReceiver playReceiver = new BroadcastReceiver() {
+    playReceiver = new BroadcastReceiver() {
       @Override
       public void onReceive(final Context context, final Intent intent) {
         Log.d("tinymod", "activity got PLAY broadcast");
+        guiControls.showInfo(intent.getStringExtra("info"));
         guiControls.showButtonsForPlay();
       }
     };
-    final BroadcastReceiver pauseReceiver = new BroadcastReceiver() {
+    pauseReceiver = new BroadcastReceiver() {
       @Override
       public void onReceive(final Context context, final Intent intent) {
         Log.d("tinymod", "activity got PAUSE broadcast");
         guiControls.showButtonsForPause();
       }
     };
-    final BroadcastReceiver stopReceiver = new BroadcastReceiver() {
+    stopReceiver = new BroadcastReceiver() {
       @Override
       public void onReceive(final Context context, final Intent intent) {
         Log.d("tinymod", "activity got STOP broadcast");
@@ -131,7 +148,7 @@ public final class Start extends ListActivity {
   @Override
   protected void onListItemClick(final ListView l, final View v, final int position, final long id) {
     final Message message = Message.obtain(null, TinyModService.MSG_PLAY_FILE);
-    sendMessage(addStringParameter(message, "name", songPaths.get(position)));
+    sendMessage(addStringParameter(message, "name", songPaths.get(songs.get(position))));
   }
 
   private void sendMessage(final Message message) {
@@ -181,8 +198,9 @@ public final class Start extends ListActivity {
     songPaths.clear();
     for (final File file : fileList) {
       songs.add(file.getName());
-      songPaths.add(file.getAbsolutePath());
+      songPaths.put(file.getName(), file.getAbsolutePath());
     }
+    Collections.sort(songs, String.CASE_INSENSITIVE_ORDER);
     setListAdapter(new ArrayAdapter<String>(this, R.layout.mod_item, songs));
   }
 
@@ -190,11 +208,13 @@ public final class Start extends ListActivity {
     private final Button playButton;
     private final Button pauseButton;
     private final Button stopButton;
+    private final TextView infoText;
 
-    public GuiControls(final Button play, final Button pause, final Button stop) {
+    public GuiControls(final Button play, final Button pause, final Button stop, final TextView info) {
       playButton = play;
       pauseButton = pause;
       stopButton = stop;
+      infoText = info;
       setButtonCallbacks();
       showButtonsForStop();
     }
@@ -243,6 +263,10 @@ public final class Start extends ListActivity {
     private void hideButton(final Button button) {
       button.setEnabled(false);
       button.setVisibility(View.GONE);
+    }
+
+    public void showInfo(final String s) {
+      infoText.setText(s);
     }
   }
 }

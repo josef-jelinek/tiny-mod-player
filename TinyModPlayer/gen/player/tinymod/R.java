@@ -15,9 +15,10 @@ public final class R {
         public static final int notify_icon=0x7f020001;
     }
     public static final class id {
-        public static final int pause=0x7f050001;
-        public static final int play=0x7f050000;
-        public static final int stop=0x7f050002;
+        public static final int pause=0x7f050002;
+        public static final int play=0x7f050001;
+        public static final int stop=0x7f050003;
+        public static final int text_info=0x7f050000;
     }
     public static final class layout {
         public static final int mod_item=0x7f030000;

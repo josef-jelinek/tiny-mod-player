@@ -129,9 +129,9 @@ public final class ModPlayer {
   }
 
   private void doLine() {
-    final Block block = mod.blocks[mod.order[blockIndex]];
+    final Block block = mod.blocks[mod.blockOrder[blockIndex]];
     if (line == 0)
-      Log.d("tinymod", "#" + blockIndex + " (" + mod.order[blockIndex] + ")");
+      Log.d("tinymod", "#" + blockIndex + " (" + mod.blockOrder[blockIndex] + ")");
     Log.d("tinymod", block.lineString(line));
     for (int i = 0; i < block.getNumberOfTracks(); i++) {
       track[i].doTrack(block.getNote(line, i)); // update sound (volume and pitch)
@@ -189,8 +189,8 @@ public final class ModPlayer {
     } else
       line++;
     while (blockIndex < mod.songLength &&
-        line >= mod.blocks[mod.order[blockIndex]].getNumberOfLines()) {
-      line -= mod.blocks[mod.order[blockIndex]].getNumberOfLines();
+        line >= mod.blocks[mod.blockOrder[blockIndex]].getNumberOfLines()) {
+      line -= mod.blocks[mod.blockOrder[blockIndex]].getNumberOfLines();
       blockIndex++;
       cycleLine = 0;
       cycleTimes = 0;
@@ -222,5 +222,11 @@ public final class ModPlayer {
       else
         cycleLine = line + 1; // set loop start to prevent infinite loops S3M/IT
     }
+  }
+
+  @Override
+  public String toString() {
+    return mod == null ? "" : "tracker: " + mod.tracker + "\r\ntitle: " +
+        mod.title + "\r\ntracks: " + mod.tracks;
   }
 }

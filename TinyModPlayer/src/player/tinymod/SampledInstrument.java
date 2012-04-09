@@ -3,7 +3,7 @@ package player.tinymod;
 public final class SampledInstrument extends Instrument {
   private byte[] data;
 
-  public SampledInstrument(final int id, final int length) {
+  public SampledInstrument(int id, int length) {
     super(id);
     data = new byte[length];
   }
@@ -14,7 +14,7 @@ public final class SampledInstrument extends Instrument {
   }
 
   @Override
-  public void loop(final int start, final int length) {
+  public void loop(int start, int length) {
     loopStart = Tools.crop(start, 0, data.length);
     loopLength = Tools.crop(length, 0, data.length - loopStart);
     if (loopLength <= 2) {
@@ -24,7 +24,7 @@ public final class SampledInstrument extends Instrument {
   }
 
   @Override
-  public void trimTo(final int length) {
+  public void trimTo(int length) {
     if (length >= data.length)
       return;
     final byte[] newdata = new byte[length];

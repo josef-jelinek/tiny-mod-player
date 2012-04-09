@@ -16,7 +16,7 @@ public abstract class Instrument {
   public int hold = 0;
   public int decay = 0;
 
-  public Instrument(final int id) {
+  public Instrument(int id) {
     this.id = id;
   }
 
@@ -35,35 +35,35 @@ public abstract class Instrument {
     return ikey;
   }
 
-  public final void maxKey(final int key) {
+  public final void maxKey(int key) {
     maxKey = key;
   }
 
-  public final void minKey(final int key) {
+  public final void minKey(int key) {
     minKey = key;
   }
 
-  public final void name(final String name) {
+  public final void name(String name) {
     this.name = name;
   }
 
-  public final void volume(final int volume) {
+  public final void volume(int volume) {
     this.volume = Tools.crop(volume, 0, 64);
   }
 
-  public final void fineTune(final int fineTune) {
+  public final void fineTune(int fineTune) {
     this.fineTune = Tools.crop(fineTune < 8 ? fineTune : fineTune - 16, -8, 7);
   }
 
-  public final void transpose(final int transpose) {
+  public final void transpose(int transpose) {
     this.transpose = transpose;
   }
 
-  public final void hold(final int hold) {
+  public final void hold(int hold) {
     this.hold = hold;
   }
 
-  public final void decay(final int decay) {
+  public final void decay(int decay) {
     this.decay = decay;
   }
 }

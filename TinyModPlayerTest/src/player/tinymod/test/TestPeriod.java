@@ -40,7 +40,7 @@ public class TestPeriod extends TestCase {
     assertEquals("C-5", Period.getKeyName(KEY_C3, true));
     assertEquals("C#4", Period.getKeyName(KEY_Cs2, false));
     assertEquals(" - ", Period.getKeyName(0, false));
-    assertEquals(" | ", Period.getKeyName(0, true));
+    assertEquals(" * ", Period.getKeyName(0, true));
   }
 
   public void testSnapPeriod() {

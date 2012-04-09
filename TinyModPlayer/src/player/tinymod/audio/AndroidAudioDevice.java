@@ -1,5 +1,6 @@
-package player.tinymod;
+package player.tinymod.audio;
 
+import player.tinymod.AudioDevice;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
