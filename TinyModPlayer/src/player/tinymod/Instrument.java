@@ -15,6 +15,7 @@ public abstract class Instrument {
   private int minKey = 1;
   public int hold = 0;
   public int decay = 0;
+  public boolean is16bit = false;
 
   public Instrument(int id) {
     this.id = id;

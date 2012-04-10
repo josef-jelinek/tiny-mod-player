@@ -41,11 +41,12 @@ public final class ParserMod implements Parser {
     reader.seek(0);
     String title = reader.string(20); // read title
     Instrument[] instruments = readInstruments(reader, format);
-    if (instruments == null)
-      return null;
+    format = updateDescription(format, id, instruments);
     int songLength = reader.u1();
     reader.skip(1); // magic byte
     int[] order = readPatternOrder(reader);
+    if (format.type == trekker && format.tracks == 8)
+      format = format.changeTracks(adjustTrekker8Order(order));
     int totalPatterns = countPatterns(order, songLength);
     if (!format.isLegacy())
       reader.skip(4); // skip id
@@ -63,52 +64,97 @@ public final class ParserMod implements Parser {
     return mod;
   }
 
-  private static Block[] readPatterns(ByteReader reader, int count, ModFormat format,
-      Instrument[] ins) {
-    Block[] patterns = new Block[count];
-    for (int i = 0; i < count; i++) {
-      patterns[i] = readPattern(reader, format, ins);
-      if (patterns[i] == null)
-        return null;
+  private ModFormat updateDescription(ModFormat format, String id, Instrument[] instruments) {
+    for (int i = 0; i < instruments.length; i++)
+      if (format.type == ft_orpheus && instruments[i].is16bit)
+        return format.changeDescription("Imago Orpheus (" + id + ")");
+    return format;
+  }
+
+  private static Block[] readPatterns(ByteReader reader, int n, ModFormat format, Instrument[] ins) {
+    Block[] patterns = new Block[n];
+    for (int i = 0; i < n; i++) {
+      if (format.type == trekker && format.tracks == 8) {
+        Block pattern1 = readPattern(reader, format.type, 4, ins);
+        Block pattern2 = readPattern(reader, format.type, 4, ins);
+        if (pattern1 == null || pattern2 == null)
+          return null;
+        patterns[i] = new Block(64, 8);
+        for (int row = 0; row < 64; row++) {
+          for (int track = 0; track < 4; track++) {
+            patterns[i].putNote(row, track, pattern1.getNote(row, track));
+            patterns[i].putNote(row, track + 4, pattern2.getNote(row, track));
+          }
+        }
+      } else {
+        patterns[i] = readPattern(reader, format.type, format.tracks, ins);
+        if (patterns[i] == null)
+          return null;
+      }
     }
     return patterns;
   }
 
-  private static Block readPattern(ByteReader reader, ModFormat format, Instrument[] ins) {
-    if (reader.available() < 64 * format.tracks * 4)
+  private static Block readPattern(ByteReader reader, ModFormat.Type type, int tracks, Instrument[] ins) {
+    if (reader.available() < 64 * tracks * 4)
       return null;
-    Block block = new Block(64, format.tracks);
+    Block block = new Block(64, tracks);
     for (int row = 0; row < 64; row++) {
-      for (int track = 0; track < format.tracks; track++) {
+      for (int track = 0; track < tracks; track++) {
         int b0 = reader.u1();
         int b1 = reader.u1();
         int b2 = reader.u1();
         int b3 = reader.u1();
-        int instrumentIndex = (b0 & 0xF0 | (b2 & 0xF0) >> 4) - 1;
+        int i = (b0 & 0xF0 | (b2 & 0xF0) >> 4) - 1;
         int period = (b0 << 8 | b1) & 0xFFF;
         int key = Period.getKeyForPeriod(period * 100);
-        int effect = b2 & 0xF;
-        int efx = b3 >> 4;
-        int efy = b3 & 15;
+        int effect = type == ust ? ustEffect(b2 & 0xF, b3) : b2 & 0xF;
+        int param = type == ust ? ustEffectParam(b2 & 0xF, b3) : b3;
+        int paramX = param >> 4;
+        int paramY = param & 15;
         if (effect == 0x0E) { // extended commands
-          effect = effect << 4 | efx;
-          efx = 0;
+          effect = effect << 4 | paramX;
+          paramX = 0;
         }
         if (effect == 0x0D) { // pattern break dec to hex
-          int dec = efx * 10 + efy;
-          efx = dec >> 4;
-          efy = dec & 15;
+          int dec = paramX * 10 + paramY;
+          paramX = dec >> 4;
+          paramY = dec & 15;
         }
-        boolean isOutOfRange = instrumentIndex < 0 || instrumentIndex >= ins.length;
-        Instrument instrument = isOutOfRange ? null : ins[instrumentIndex];
-        block.putNote(row, track, new Note(key, instrument, effect, efx, efy, false));
+        boolean isOutOfRange = i < 0 || i >= ins.length;
+        Instrument instrument = isOutOfRange ? null : ins[i];
+        block.putNote(row, track, new Note(key, instrument, effect, paramX, paramY, false));
       }
     }
     return block;
   }
 
+  private static int ustEffect(int effect, int param) {
+    if (effect == 1)
+      return 0;
+    if (effect == 2 && (param & 0xF) != 0)
+      return 1;
+    if (effect == 2 && (param >> 4 & 0xF) != 0)
+      return 2;
+    if (effect != 0 && effect != 2 && effect != 3)
+      return effect;
+    return 0;
+  }
+
+  private static int ustEffectParam(int effect, int param) {
+    if (effect == 1)
+      return param;
+    if (effect == 2 && (param & 0xF) != 0)
+      return param & 0xF;
+    if (effect == 2 && (param >> 4 & 0xF) != 0)
+      return param >> 4 & 0xF;
+    if (effect != 0 && effect != 2 && effect != 3)
+      return param;
+    return 0;
+  }
+
   static ModFormat checkType(String id) {
-    if (id.equals("M.K.") || id.equals("M!K!")) // TODO: is M!K! 8-track?
+    if (id.equals("M.K.") || id.equals("M!K!"))
       return new ModFormat(pt, 4, 31, ptText + " (" + id + ")");
     if (id.equals("FLT4") || id.equals("FLT8") || id.equals("EXO4") || id.equals("EXO8"))
       return new ModFormat(trekker, digit(id, 3), 31, trekkerText + " (" + id + ")");
@@ -119,10 +165,14 @@ public final class ParserMod implements Parser {
     if (id.endsWith("CHN") && digit(id, 0) >= 0)
       return new ModFormat(generic, digit(id, 0), 31, ftText + " (" + id + ")");
     if (id.endsWith("CH") && digit(id, 0) >= 0 && digit(id, 1) >= 0)
-      return new ModFormat(ft_orpheus, digit(id, 0) * 10 + digit(id, 1), 31, ftText + " (" + id + ")");
+      return new ModFormat(ft_orpheus, number00(id), 31, ftText + " (" + id + ")");
     if (id.endsWith("CN") && digit(id, 0) >= 0 && digit(id, 1) >= 0)
-      return new ModFormat(generic, digit(id, 0) * 10 + digit(id, 1), 31, ttText + " (" + id + ")");
+      return new ModFormat(generic, number00(id), 31, ttText + " (" + id + ")");
     return null;
+  }
+
+  private static int number00(String id) {
+    return digit(id, 0) * 10 + digit(id, 1);
   }
 
   private ModFormat testLegacy(ByteReader reader) {
@@ -158,6 +208,15 @@ public final class ParserMod implements Parser {
     return order;
   }
 
+  private static int adjustTrekker8Order(int[] order) {
+    for (int i = 0; i < 128; i++)
+      if (order[i] % 2 == 1) // maybe FLT8 is FLT4 if it refers to odd patterns
+        return 4;
+    for (int i = 0; i < 128; i++)
+      order[i] /= 2;
+    return 8;
+  }
+
   private static int countPatterns(int[] order, int count) {
     int end = 128;
     // find if unused patterns exist after count
@@ -184,8 +243,6 @@ public final class ParserMod implements Parser {
   }
 
   private static Instrument[] readInstruments(ByteReader reader, ModFormat format) {
-    if (reader.available() < 30 * format.samples)
-      ;
     final Instrument[] instruments = new Instrument[format.samples];
     for (int i = 0; i < instruments.length; i++)
       instruments[i] = readInstrument(reader, i, format.type);
@@ -196,7 +253,7 @@ public final class ParserMod implements Parser {
     final String name = reader.string(22);
     final int length = reader.u2() * 2;
     final int finetune = reader.u1() & 15;
-    final int volume = Math.min(64, reader.u1());
+    final int volume = reader.u1();
     final int loopStart = reader.u2() * (type == ust ? 1 : 2);
     final int loopLength = reader.u2() * (type == ust ? 1 : 2);
     final Instrument instrument = new SampledInstrument(index + 1, length);
@@ -204,6 +261,7 @@ public final class ParserMod implements Parser {
     instrument.volume(volume);
     instrument.fineTune(finetune);
     instrument.loop(loopStart, loopLength);
+    instrument.is16bit = type == ft_orpheus && (volume & 0x80) != 0;
     return instrument;
   }
 
@@ -215,6 +273,8 @@ public final class ParserMod implements Parser {
           break;
         }
         instruments[i].data()[j] = (byte)reader.s1();
+        if (instruments[i].is16bit)
+          reader.skip(1); // ignore lower part of 16bit sample
       }
     }
   }

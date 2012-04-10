@@ -95,14 +95,14 @@ public class TinyModService extends Service {
       if (parser.test(data)) {
         Mod mod = parser.parse(data);
         if (mod == null) {
-          Toast.makeText(this, "Failed to load as " + parser.name(), Toast.LENGTH_SHORT);
+          Toast.makeText(this, "Failed to load as " + parser.name(), Toast.LENGTH_SHORT).show();
         } else {
           playLoop(mod, file.getName());
           return;
         }
       }
     }
-    Toast.makeText(this, "Unknown format", Toast.LENGTH_SHORT);
+    Toast.makeText(this, "Unknown format", Toast.LENGTH_SHORT).show();
   }
 
   private Thread playThread = null;
@@ -173,8 +173,7 @@ public class TinyModService extends Service {
   private void sendPlayingState(final Messenger messenger) {
     try {
       final int state =
-          player.isActive() ? player.isPaused() ? PLAYING_STATE_PAUSE : PLAYING_STATE_PLAY
-              : PLAYING_STATE_STOP;
+          player.isActive() ? player.isPaused() ? PLAYING_STATE_PAUSE : PLAYING_STATE_PLAY : PLAYING_STATE_STOP;
       Log.d("tinymod", "service sent playing state message " + state + " " + messenger.getClass());
       messenger.send(createPlayingStateMessage(state));
     } catch (final RemoteException e) {

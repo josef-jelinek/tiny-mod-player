@@ -34,4 +34,10 @@ public final class ModFormat {
   public boolean isLegacy() {
     return type == unknown || type == ust || type == nt;
   }
+
+  public ModFormat changeTracks(int tracks) {
+    if (tracks == this.tracks)
+      return this;
+    return new ModFormat(type, tracks, samples, description);
+  }
 }
