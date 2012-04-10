@@ -1,4 +1,4 @@
-package player.tinymod;
+package player.tinymod.tools;
 
 public final class Fourier {
 

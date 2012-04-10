@@ -1,5 +1,7 @@
 package player.tinymod;
 
+import player.tinymod.tools.Tools;
+
 public final class AudioSound {
   private static final int[] sintab = {
     0, 24, 49, 74, 97, 120, 141, 161, 180, 197, 212, 224, 235, 244, 250, 253,

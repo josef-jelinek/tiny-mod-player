@@ -1,5 +1,7 @@
 package player.tinymod;
 
+import player.tinymod.tools.Tools;
+
 public final class AudioTrack {
   private static final int NONE = -1;
   private static final int ARPEGGIO = 0;

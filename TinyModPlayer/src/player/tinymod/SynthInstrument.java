@@ -1,5 +1,7 @@
 package player.tinymod;
 
+import player.tinymod.tools.Tools;
+
 public final class SynthInstrument extends Instrument {
   private final boolean hybrid;
   private final byte[][] waveform;

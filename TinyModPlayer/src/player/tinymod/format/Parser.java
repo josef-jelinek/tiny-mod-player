@@ -1,4 +1,7 @@
-package player.tinymod;
+package player.tinymod.format;
+
+import player.tinymod.Mod;
+
 
 public interface Parser {
   String name();

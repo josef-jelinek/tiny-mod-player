@@ -1,5 +1,7 @@
 package player.tinymod;
 
+import player.tinymod.tools.Tools;
+
 public final class SampledInstrument extends Instrument {
   private byte[] data;
 

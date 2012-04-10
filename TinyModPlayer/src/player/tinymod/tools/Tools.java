@@ -1,4 +1,4 @@
-package player.tinymod;
+package player.tinymod.tools;
 
 public final class Tools {
   private static final String digits = "0123456789";
@@ -13,13 +13,6 @@ public final class Tools {
 
   public static int crop(int x, int low, int high) {
     return Math.max(low, Math.min(high, x));
-  }
-
-  public static String escape(String s) {
-    for (int i = s.length() - 1; i >= 0; i--)
-      if (s.charAt(i) < 32 || s.charAt(i) > 127 || s.charAt(i) == '[')
-        s = s.substring(0, i) + "[" + (int)s.charAt(i) + "]" + s.substring(i + 1);
-    return s;
   }
 
   public static String trimEnd(String s, char c) {

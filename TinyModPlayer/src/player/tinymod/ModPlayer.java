@@ -1,5 +1,6 @@
 package player.tinymod;
 
+import player.tinymod.tools.Tools;
 import android.util.Log;
 
 public final class ModPlayer {
@@ -129,17 +130,17 @@ public final class ModPlayer {
   }
 
   private void doLine() {
-    final Block block = mod.blocks[mod.blockOrder[blockIndex]];
+    final Pattern block = mod.patterns[mod.patternOrder[blockIndex]];
     if (line == 0)
-      Log.d("tinymod", "#" + blockIndex + " (" + mod.blockOrder[blockIndex] + ")");
-    Log.d("tinymod", block.lineString(line));
-    for (int i = 0; i < block.getNumberOfTracks(); i++) {
-      track[i].doTrack(block.getNote(line, i)); // update sound (volume and pitch)
-      doTrack(block.getNote(line, i)); // update control (global)
+      Log.d("tinymod", "#" + blockIndex + " (" + mod.patternOrder[blockIndex] + ")");
+    Log.d("tinymod", block.rowString(line));
+    for (int i = 0; i < block.tracks(); i++) {
+      track[i].doTrack(block.getNote(i, line)); // update sound (volume and pitch)
+      doTrack(block.getNote(i, line)); // update control (global)
     }
     nextPos();
-    for (int i = 0; i < block.getNumberOfTracks(); i++)
-      track[i].checkHold(block.getNote(line, i), ticksPerLine);
+    for (int i = 0; i < block.tracks(); i++)
+      track[i].checkHold(block.getNote(i, line), ticksPerLine);
   }
 
   private void doTrack(final Note note) {
@@ -189,8 +190,8 @@ public final class ModPlayer {
     } else
       line++;
     while (blockIndex < mod.songLength &&
-        line >= mod.blocks[mod.blockOrder[blockIndex]].getNumberOfLines()) {
-      line -= mod.blocks[mod.blockOrder[blockIndex]].getNumberOfLines();
+        line >= mod.patterns[mod.patternOrder[blockIndex]].rows()) {
+      line -= mod.patterns[mod.patternOrder[blockIndex]].rows();
       blockIndex++;
       cycleLine = 0;
       cycleTimes = 0;
@@ -226,7 +227,13 @@ public final class ModPlayer {
 
   @Override
   public String toString() {
-    return mod == null ? "" : "tracker: " + mod.tracker + "\r\ntitle: " +
-        mod.title + "\r\ntracks: " + mod.tracks;
+    if (mod == null)
+      return "";
+    String s = "tracker: " + mod.tracker + "\r\n";
+    if (!mod.packer.equals(""))
+      s += "packer: " + mod.packer + "\r\n";
+    s += "title: " + mod.title + "\r\n";
+    s += "channels: " + mod.tracks;
+    return s;
   }
 }

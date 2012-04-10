@@ -1,9 +1,11 @@
-package player.tinymod;
+package player.tinymod.format;
 
-import static player.tinymod.ModFormat.Type.*;
-import static player.tinymod.Tools.digit;
+import static player.tinymod.format.ModFormat.Type.*;
 import static player.tinymod.io.ByteReader.nulChar;
+import static player.tinymod.tools.Tools.digit;
+import player.tinymod.*;
 import player.tinymod.io.ByteReader;
+import player.tinymod.tools.Tools;
 import android.util.Log;
 
 public final class ParserMod implements Parser {
@@ -50,7 +52,7 @@ public final class ParserMod implements Parser {
     int totalPatterns = countPatterns(order, songLength);
     if (!format.isLegacy())
       reader.skip(4); // skip id
-    Block[] patterns = readPatterns(reader, totalPatterns, format, instruments);
+    Pattern[] patterns = readPatterns(reader, totalPatterns, format, instruments);
     if (patterns == null)
       return null;
     readInstrumentSamples(reader, instruments);
@@ -59,8 +61,8 @@ public final class ParserMod implements Parser {
     mod.title = Tools.trimEnd(title, nulChar);
     mod.instruments = instruments;
     mod.songLength = songLength;
-    mod.blockOrder = order;
-    mod.blocks = patterns;
+    mod.patternOrder = order;
+    mod.patterns = patterns;
     return mod;
   }
 
@@ -71,19 +73,19 @@ public final class ParserMod implements Parser {
     return format;
   }
 
-  private static Block[] readPatterns(ByteReader reader, int n, ModFormat format, Instrument[] ins) {
-    Block[] patterns = new Block[n];
+  private static Pattern[] readPatterns(ByteReader reader, int n, ModFormat format, Instrument[] ins) {
+    Pattern[] patterns = new Pattern[n];
     for (int i = 0; i < n; i++) {
       if (format.type == trekker && format.tracks == 8) {
-        Block pattern1 = readPattern(reader, format.type, 4, ins);
-        Block pattern2 = readPattern(reader, format.type, 4, ins);
+        Pattern pattern1 = readPattern(reader, format.type, 4, ins);
+        Pattern pattern2 = readPattern(reader, format.type, 4, ins);
         if (pattern1 == null || pattern2 == null)
           return null;
-        patterns[i] = new Block(64, 8);
+        patterns[i] = new Pattern(8, 64);
         for (int row = 0; row < 64; row++) {
           for (int track = 0; track < 4; track++) {
-            patterns[i].putNote(row, track, pattern1.getNote(row, track));
-            patterns[i].putNote(row, track + 4, pattern2.getNote(row, track));
+            patterns[i].setNote(track, row, pattern1.getNote(track, row));
+            patterns[i].setNote(track + 4, row, pattern2.getNote(track, row));
           }
         }
       } else {
@@ -95,10 +97,10 @@ public final class ParserMod implements Parser {
     return patterns;
   }
 
-  private static Block readPattern(ByteReader reader, ModFormat.Type type, int tracks, Instrument[] ins) {
+  private static Pattern readPattern(ByteReader reader, ModFormat.Type type, int tracks, Instrument[] ins) {
     if (reader.available() < 64 * tracks * 4)
       return null;
-    Block block = new Block(64, tracks);
+    Pattern block = new Pattern(tracks, 64);
     for (int row = 0; row < 64; row++) {
       for (int track = 0; track < tracks; track++) {
         int b0 = reader.u1();
@@ -123,7 +125,7 @@ public final class ParserMod implements Parser {
         }
         boolean isOutOfRange = i < 0 || i >= ins.length;
         Instrument instrument = isOutOfRange ? null : ins[i];
-        block.putNote(row, track, new Note(key, instrument, effect, paramX, paramY, false));
+        block.setNote(track, row, new Note(key, instrument, effect, paramX, paramY, false));
       }
     }
     return block;

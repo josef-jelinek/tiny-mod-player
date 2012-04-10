@@ -1,41 +1,21 @@
 package player.tinymod.client;
 
 import java.io.File;
-import java.io.FilenameFilter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
 import player.tinymod.R;
 import android.app.ListActivity;
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
+import android.content.*;
+import android.os.*;
 import android.util.Log;
 import android.view.View;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.ListView;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.*;
 
 public final class Start extends ListActivity {
   private static final String MEDIA_PATH = "/sdcard/Mods";
   private final List<String> songs = new ArrayList<String>();
   private final Map<String, String> songPaths = new HashMap<String, String>();
-  private final static ModFilter filter = new ModFilter();
-  private GuiControls guiControls = null;
+  GuiControls guiControls = null;
   Messenger serviceMessenger = null;
   private BroadcastReceiver playReceiver;
   private BroadcastReceiver pauseReceiver;
@@ -151,7 +131,7 @@ public final class Start extends ListActivity {
     sendMessage(addStringParameter(message, "name", songPaths.get(songs.get(position))));
   }
 
-  private void sendMessage(final Message message) {
+  void sendMessage(final Message message) {
     if (serviceMessenger != null)
       try {
         message.replyTo = activityMessenger;
@@ -169,26 +149,19 @@ public final class Start extends ListActivity {
   }
 
   private static List<File> listSongFiles(final File directory) {
-    final File[] files = directory.listFiles(filter);
+    final File[] files = directory.listFiles();
     return files == null ? new ArrayList<File>(0) : Arrays.asList(files);
   }
 
-  private static class ModFilter implements FilenameFilter {
-    public boolean accept(final File dir, final String name) {
-      final String s = name.toLowerCase();
-      return s.endsWith(".mod") || s.endsWith(".med");
-    }
-  }
-
-  private void playClicked() {
+  void playClicked() {
     sendMessage(Message.obtain(null, TinyModService.MSG_RESUME));
   }
 
-  private void pauseClicked() {
+  void pauseClicked() {
     sendMessage(Message.obtain(null, TinyModService.MSG_PAUSE));
   }
 
-  private void stopClicked() {
+  void stopClicked() {
     sendMessage(Message.obtain(null, TinyModService.MSG_STOP));
   }
 

@@ -1,5 +1,7 @@
 package player.tinymod;
 
+import player.tinymod.tools.Tools;
+
 public final class Note {
   public final int key;
   public final Instrument instrument;

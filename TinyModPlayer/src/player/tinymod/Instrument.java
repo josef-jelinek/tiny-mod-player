@@ -1,5 +1,7 @@
 package player.tinymod;
 
+import player.tinymod.tools.Tools;
+
 public abstract class Instrument {
   public static final int SAMPLED = 0;
   public static final int SYNTHETIC = 1;

@@ -1,13 +1,14 @@
-package player.tinymod;
+package player.tinymod.format;
 
-import static player.tinymod.Tools.crop;
+import static player.tinymod.tools.Tools.crop;
+import player.tinymod.*;
 import player.tinymod.io.ByteReader;
 import android.util.Log;
 
 public final class ParserMed implements Parser {
   
   public String name() {
-    return "MED/OctaMed";
+    return "OctaMED";
   }
 
   public boolean test(byte[] data) {
@@ -47,7 +48,7 @@ public final class ParserMed implements Parser {
     data.seek(song);
     // MMD0Song
     data.skip(63 * 8); // skip MMD0Sample - to be read later
-    Block[] blocks = new Block[data.u2()]; // length of blockarr in longwords
+    Pattern[] blocks = new Pattern[data.u2()]; // length of blockarr in longwords
     int songLength = data.u2();
     int[] order = new int[256];
     for (int i = 0, j = 0; i < 256; i++) { // playseq[256]
@@ -124,7 +125,7 @@ public final class ParserMed implements Parser {
         if (blockp != 0) {
           data.seek(blockp);
           blocks[block] = readMedBlock(data, id, instruments, hexVol, chan5to8, bpmMode);
-          tracks = Math.max(tracks, blocks[block].getNumberOfTracks());
+          tracks = Math.max(tracks, blocks[block].tracks());
         }
       }
     // process expdata
@@ -157,9 +158,9 @@ public final class ParserMed implements Parser {
     final Mod mod = new Mod(tracks);
     mod.tracker = "MED/OctaMed (" + id + ")";
     mod.filter = filter;
-    mod.blocks = blocks;
+    mod.patterns = blocks;
     mod.songLength = songLength;
-    mod.blockOrder = order;
+    mod.patternOrder = order;
     mod.instruments = instruments;
     mod.transpose = transpose;
     mod.doFirstLineTick = doFirstLineTick;
@@ -241,26 +242,26 @@ public final class ParserMed implements Parser {
     return null;
   }
 
-  private static Block readMedBlock(final ByteReader data, final String id,
+  private static Pattern readMedBlock(final ByteReader data, final String id,
       final Instrument[] instruments, final boolean hexVol, final boolean chan5to8,
       final boolean bpmMode) {
     if (id.equals("MMD0")) {
       final int numtracks = data.u1();
       final int lines = data.u1() + 1;
-      final Block block = new Block(lines, numtracks);
+      final Pattern block = new Pattern(numtracks, lines);
       for (int line = 0; line < lines; line++)
         for (int track = 0; track < numtracks; track++)
-          block.putNote(line, track, readMmd0Note(data, instruments, hexVol, chan5to8, bpmMode));
+          block.setNote(track, line, readMmd0Note(data, instruments, hexVol, chan5to8, bpmMode));
       return block;
     }
     if (id.equals("MMD1")) {
       final int numtracks = data.u2();
       final int lines = data.u2() + 1;
-      final Block block = new Block(lines, numtracks);
+      final Pattern block = new Pattern(numtracks, lines);
       data.s4(); // BlockInfo - unimportant for the player
       for (int line = 0; line < lines; line++)
         for (int track = 0; track < numtracks; track++)
-          block.putNote(line, track, readMmd1Note(data, instruments, hexVol, chan5to8, bpmMode));
+          block.setNote(track, line, readMmd1Note(data, instruments, hexVol, chan5to8, bpmMode));
       return block;
     }
     return null;

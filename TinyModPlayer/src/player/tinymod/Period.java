@@ -1,7 +1,7 @@
 package player.tinymod;
 
 import static java.lang.Math.*;
-import static player.tinymod.Tools.crop;
+import static player.tinymod.tools.Tools.crop;
 
 public final class Period {
   private static final String[] keyNames = {

@@ -1,6 +1,4 @@
-package player.tinymod;
-
-import static player.tinymod.ModFormat.Type.*;
+package player.tinymod.format;
 
 public final class ModFormat {
   public static enum Type {
@@ -30,9 +28,9 @@ public final class ModFormat {
       return this;
     return new ModFormat(type, tracks, samples, description);
   }
-  
+
   public boolean isLegacy() {
-    return type == unknown || type == ust || type == nt;
+    return type == Type.unknown || type == Type.ust || type == Type.nt;
   }
 
   public ModFormat changeTracks(int tracks) {

@@ -2,6 +2,7 @@ package player.tinymod.test;
 
 import java.io.*;
 import player.tinymod.*;
+import player.tinymod.format.*;
 import android.test.ActivityTestCase;
 
 public class TestModLoader extends ActivityTestCase {
