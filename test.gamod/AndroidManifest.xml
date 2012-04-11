@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  package="gamod.test"
+  android:versionCode="1"
+  android:versionName="1.0">
+  <instrumentation
+    android:targetPackage="gamod.client"
+    android:name="android.test.InstrumentationTestRunner"/>
+  <uses-sdk
+    android:targetSdkVersion="7"
+    android:minSdkVersion="7"/>
+  <application>
+    <uses-library
+      android:name="android.test.runner"/>
+  </application>
+</manifest>
