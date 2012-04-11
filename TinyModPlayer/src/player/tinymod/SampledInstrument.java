@@ -27,12 +27,11 @@ public final class SampledInstrument extends Instrument {
 
   @Override
   public void trimTo(int length) {
-    if (length >= data.length)
-      return;
-    final byte[] newdata = new byte[length];
-    for (int i = 0; i < length; i++)
-      newdata[i] = data[i];
-    data = newdata;
-    loop(loopStart, loopLength);
+    if (length < data.length) {
+      byte[] a = new byte[length];
+      System.arraycopy(data, 0, a, 0, length);
+      data = a;
+      loop(loopStart, loopLength);
+    }
   }
 }

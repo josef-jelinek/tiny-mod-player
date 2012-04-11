@@ -39,7 +39,19 @@ public final class Note {
   private boolean hasEffect() {
     return effect != 0 || paramX != 0 || paramY != 0;
   }
+  
+  private static long holdMask = 1L << 63;
 
+  // H0000000 0000IIII IIIIIIII KKKKKKKK EEEEEEEE EEEEEEEE PPPPPPPP PPPPPPPP
+  public static long create(int key, int instrument, int effect, int param, boolean hold) {
+    long x = hold ? holdMask : 0;
+    x |= (instrument & 0xFFFL) << 40;
+    x |= (key & 0xFFL) << 32;
+    x |= (effect & 0xFFFFL) << 16;
+    x |= param & 0xFFFFL;
+    return x;
+  }
+  
   private static char h1(int x) {
     return "0123456789ABCDEF".charAt(x);
   }

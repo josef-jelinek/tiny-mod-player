@@ -61,12 +61,12 @@ public final class AudioSynthSound {
     vibPos = 0;
   }
 
-  public void instrument(final Instrument instrument) {
+  public void instrument(Instrument instrument) {
     reset();
     if (instrument instanceof SynthInstrument) {
       this.instrument = (SynthInstrument)instrument;
       volSpeed = Math.max(1, this.instrument.volSpeed);
-      wfSpeed = Math.max(1, this.instrument.wfSpeed);
+      wfSpeed = Math.max(1, this.instrument.waveformSpeed);
     }
   }
 
@@ -91,7 +91,7 @@ public final class AudioSynthSound {
   }
 
   public boolean synthWaveForm() {
-    return instrument != null && instrument.synthWf(waveform);
+    return instrument != null && instrument.isSynthWaveform(waveform);
   }
 
   public boolean decay(final int decay) {
@@ -118,9 +118,9 @@ public final class AudioSynthSound {
     volUpdate();
     wfUpdate();
     if (arpeggio) {
-      if (arpPos > instrument.wfData.length || (instrument.wfData[arpPos] & 255) >= 128)
+      if (arpPos > instrument.waveformData.length || (instrument.waveformData[arpPos] & 255) >= 128)
         arpPos = arpStart;
-      keyDelta = instrument.wfData[arpPos++] & 255;
+      keyDelta = instrument.waveformData[arpPos++] & 255;
     }
     if (vibDepth > 0) {
       if (vibWf >= 0) {
@@ -214,8 +214,8 @@ public final class AudioSynthSound {
       else {
         boolean get = true;
         int cnt = 0;
-        while (get && wfPos < instrument.wfData.length && cnt < instrument.wfData.length) {
-          final int cmd = instrument.wfData[wfPos++] & 255;
+        while (get && wfPos < instrument.waveformData.length && cnt < instrument.waveformData.length) {
+          final int cmd = instrument.waveformData[wfPos++] & 255;
           if (cmd < 128) {
             waveform = cmd;
             data = instrument.data(waveform);
@@ -223,46 +223,46 @@ public final class AudioSynthSound {
           }
           switch (cmd) {
           case 0xF0: // SPD
-            wfSpeed = instrument.wfData[wfPos++] & 255;
+            wfSpeed = instrument.waveformData[wfPos++] & 255;
             break;
           case 0xF1: // WAI
-            wfWait = instrument.wfData[wfPos++] & 255;
+            wfWait = instrument.waveformData[wfPos++] & 255;
             get = false;
             break;
           case 0xF2: // CHD
-            wfDif = instrument.wfData[wfPos++] & 255;
+            wfDif = instrument.waveformData[wfPos++] & 255;
             break;
           case 0xF3: // CHU
-            wfDif = -(instrument.wfData[wfPos++] & 255);
+            wfDif = -(instrument.waveformData[wfPos++] & 255);
             break;
           case 0xF4: // VBD
-            vibDepth = instrument.wfData[wfPos++] & 255;
+            vibDepth = instrument.waveformData[wfPos++] & 255;
             break;
           case 0xF5: // VBS
-            vibSpeed = instrument.wfData[wfPos++] & 255;
+            vibSpeed = instrument.waveformData[wfPos++] & 255;
             break;
           case 0xF6: // RES
             wfPeriod = 0;
             break;
           case 0xF7: // VWF
-            vibWf = instrument.wfData[wfPos++] & 255;
+            vibWf = instrument.waveformData[wfPos++] & 255;
             break;
           case 0xFA: // JVS
-            volPos = instrument.wfData[wfPos++] & 255;
+            volPos = instrument.waveformData[wfPos++] & 255;
             volWait = 0;
             break;
           case 0xFC: // ARP
-            arpeggio = wfPos < instrument.wfData.length && (instrument.wfData[wfPos] & 255) < 128;
+            arpeggio = wfPos < instrument.waveformData.length && (instrument.waveformData[wfPos] & 255) < 128;
             if (arpeggio) {
               arpPos = arpStart = wfPos;
-              while (wfPos < instrument.wfData.length && (instrument.wfData[wfPos] & 255) < 128)
+              while (wfPos < instrument.waveformData.length && (instrument.waveformData[wfPos] & 255) < 128)
                 wfPos++;
             }
             break;
           case 0xFD: // ARE
             break;
           case 0xFE: // JMP
-            wfPos = instrument.wfData[wfPos] & 255;
+            wfPos = instrument.waveformData[wfPos] & 255;
             break;
           case 0xFB: // HLT
           case 0xFF: // END

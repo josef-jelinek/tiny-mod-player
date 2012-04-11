@@ -206,10 +206,10 @@ public final class ParserMed implements Parser {
           break;
         }
       }
-      instrument.wfData(wftbllen);
+      instrument.waveformData(wftbllen);
       for (int wf = 0; wf < wftbllen; wf++) {
         final int x = data.u1();
-        instrument.wfData[wf] = (byte)x;
+        instrument.waveformData[wf] = (byte)x;
         if (x == 0xFF) {
           data.skip(wftbllen - wf - 1);
           break;
@@ -221,7 +221,7 @@ public final class ParserMed implements Parser {
         final int wformp = data.s4();
         if (wformp != 0) {
           data.seek(wformp + samplep);
-          if (instrument.synthWf(wform)) {
+          if (instrument.isSynthWaveform(wform)) {
             final int ln = data.w2();
             instrument.waveform(wform, ln);
             for (int i = 0; i < ln; i++)
