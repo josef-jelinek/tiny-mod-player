@@ -1,10 +1,8 @@
-package player.tinymod.unpack;
+package gamod.unpack;
 
 import java.io.*;
 import java.util.*;
 import java.util.zip.*;
-
-import android.util.Log;
 
 public final class Unzip {
   private static final byte[] Empty = new byte[0];
@@ -16,7 +14,6 @@ public final class Unzip {
       while (processNextEntry(zip))
         ;
     } catch (Exception e) {
-      Log.w("tinymod", e);
     } finally {
       try {
         zip.close();
@@ -33,7 +30,6 @@ public final class Unzip {
         items.add(new Item(entry.getName(), readEntryData(zip, (int)entry.getSize())));
       return true;
     } catch (Exception e) {
-      Log.w("tinymod", e);
       return false;
     }
   }
@@ -48,7 +44,6 @@ public final class Unzip {
         p += zip.read(b, p, size - p);
       return b;
     } catch (Exception e) {
-      Log.w("tinymod Unzip", e);
       return Empty;
     }
   }

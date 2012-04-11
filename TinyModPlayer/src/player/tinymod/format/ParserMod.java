@@ -1,11 +1,12 @@
 package player.tinymod.format;
 
+import static gamod.io.ByteReader.nulChar;
+import static gamod.tools.Tools.digit;
 import static player.tinymod.format.ModFormat.Type.*;
-import static player.tinymod.io.ByteReader.nulChar;
-import static player.tinymod.tools.Tools.digit;
+import gamod.*;
+import gamod.io.ByteReader;
+import gamod.tools.*;
 import player.tinymod.*;
-import player.tinymod.io.ByteReader;
-import player.tinymod.tools.Tools;
 import android.util.Log;
 
 public final class ParserMod implements Parser {

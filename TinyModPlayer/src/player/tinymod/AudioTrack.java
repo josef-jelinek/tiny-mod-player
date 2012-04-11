@@ -1,6 +1,7 @@
 package player.tinymod;
 
-import player.tinymod.tools.Tools;
+import gamod.*;
+import gamod.tools.Tools;
 
 public final class AudioTrack {
   private static final int NONE = -1;

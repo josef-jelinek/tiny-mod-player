@@ -1,4 +1,4 @@
-package player.tinymod.io;
+package gamod.io;
 
 public final class ByteReader {
   public static char badChar = (char)183;

@@ -1,6 +1,6 @@
-package player.tinymod;
+package gamod;
 
-import player.tinymod.tools.Tools;
+import gamod.tools.Tools;
 
 public abstract class Instrument {
   public static final int SAMPLED = 0;

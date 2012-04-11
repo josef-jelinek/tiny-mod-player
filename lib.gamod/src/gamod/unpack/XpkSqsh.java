@@ -1,4 +1,4 @@
-package player.tinymod.unpack;
+package gamod.unpack;
 
 public final class XpkSqsh implements Unpacker {
   public String name() {

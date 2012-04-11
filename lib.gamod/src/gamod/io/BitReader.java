@@ -1,4 +1,4 @@
-package player.tinymod.io;
+package gamod.io;
 
 public final class BitReader {
   private final byte[] data;

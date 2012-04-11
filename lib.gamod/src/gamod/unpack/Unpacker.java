@@ -1,4 +1,4 @@
-package player.tinymod.unpack;
+package gamod.unpack;
 
 public interface Unpacker {
   String name();

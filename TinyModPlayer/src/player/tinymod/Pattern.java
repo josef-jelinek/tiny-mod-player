@@ -1,5 +1,7 @@
 package player.tinymod;
 
+import gamod.Note;
+
 public final class Pattern {
   private final Note[][] notes;
   private final String[] lineStrings;

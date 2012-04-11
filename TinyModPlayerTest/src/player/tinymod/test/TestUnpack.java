@@ -1,7 +1,7 @@
 package player.tinymod.test;
 
+import gamod.unpack.PowerPacker;
 import junit.framework.TestCase;
-import player.tinymod.unpack.PowerPacker;
 
 public class TestUnpack extends TestCase {
   private static byte[] short_packed = { 'P', 'P', '2', '0', 0, 0, 0, 0, 0, 0, 0 };

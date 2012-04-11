@@ -1,6 +1,7 @@
 package player.tinymod;
 
-import player.tinymod.tools.Tools;
+import gamod.Instrument;
+import gamod.tools.Tools;
 
 public final class AudioSynthSound {
   private SynthInstrument instrument;

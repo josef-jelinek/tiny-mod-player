@@ -1,8 +1,9 @@
 package player.tinymod.format;
 
-import static player.tinymod.tools.Tools.crop;
-import player.tinymod.*;
-import player.tinymod.io.ByteReader;
+import static gamod.tools.Tools.crop;
+import gamod.*;
+import gamod.io.ByteReader;
+import player.tinymod.Mod;
 
 public final class ParserAhx implements Parser {
 

@@ -1,6 +1,7 @@
 package player.tinymod;
 
-import player.tinymod.tools.Tools;
+import gamod.Note;
+import gamod.tools.*;
 import android.util.Log;
 
 public final class ModPlayer {

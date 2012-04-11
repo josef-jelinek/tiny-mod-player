@@ -1,5 +1,6 @@
 package player.tinymod;
 
+import gamod.Instrument;
 import java.util.Arrays;
 
 public final class Mod {

@@ -1,6 +1,6 @@
-package player.tinymod.unpack;
+package gamod.unpack;
 
-import player.tinymod.io.BitReader;
+import gamod.io.BitReader;
 
 public final class PowerPacker implements Unpacker {
   public String name() {

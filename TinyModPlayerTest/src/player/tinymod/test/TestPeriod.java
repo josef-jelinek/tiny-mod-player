@@ -1,7 +1,7 @@
 package player.tinymod.test;
 
+import gamod.tools.Period;
 import junit.framework.TestCase;
-import player.tinymod.Period;
 
 public class TestPeriod extends TestCase {
   private static final int KEY_C2 = 3 * 12 + 1;

@@ -1,6 +1,7 @@
 package player.tinymod;
 
-import player.tinymod.tools.Tools;
+import gamod.Instrument;
+import gamod.tools.*;
 
 public final class AudioSound {
   private static final int[] sintab = {
