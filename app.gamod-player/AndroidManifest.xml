@@ -14,7 +14,7 @@
     android:label="@string/app_name">
     <activity
       android:name="gamod.client.Start"
-      android:label="@string/app_name">
+      android:label="@string/app_name" android:theme="@android:style/Theme.Light.NoTitleBar">
       <intent-filter>
         <action
           android:name="android.intent.action.MAIN"/>

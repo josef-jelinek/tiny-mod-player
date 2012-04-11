@@ -3,19 +3,21 @@
   xmlns:android="http://schemas.android.com/apk/res/android"
   android:layout_width="fill_parent"
   android:layout_height="fill_parent"
-  android:orientation="vertical">
+  android:orientation="vertical"
+  android:background="#FFDFDDD9">
   <TextView
     android:id="@+id/text_info"
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
     android:padding="10dp"
-    android:background="#FFFFFFFF"
+    android:background="#FF88CCEE"
     android:textColor="#FF000000"/>
   <ListView
     android:id="@id/android:list"
     android:layout_width="fill_parent"
     android:layout_height="0dp"
     android:layout_weight="1"
+    android:background="#FFDFDDD9"
     android:textFilterEnabled="true"
     android:choiceMode="singleChoice"/>
   <LinearLayout
