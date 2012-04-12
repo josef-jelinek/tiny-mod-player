@@ -16,6 +16,10 @@ public final class Note {
     return x;
   }
 
+  public static long create(int key, int instrument, int effect, int param) {
+    return create(key, instrument, effect, param, false);
+  }
+  
   public static boolean isHolding(long note) {
     if (getHold(note))
       return true;
@@ -55,11 +59,11 @@ public final class Note {
 
   private static String getInstrumentName(long note) {
     int instrument = getInstrument(note);
-    return instrument < 0 ? "···" : d3(instrument);
+    return instrument < 0 ? "Â·Â·Â·" : d3(instrument);
   }
 
   private static String getEffectName(long note) {
-    return hasEffect(note) ? h4(getEffect(note)) + ":" + h4(getParam(note)) : "····:····";
+    return hasEffect(note) ? h4(getEffect(note)) + ":" + h4(getParam(note)) : "Â·Â·Â·Â·:Â·Â·Â·Â·";
   }
 
   private static char h1(int x) {

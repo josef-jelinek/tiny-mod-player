@@ -53,7 +53,7 @@ public final class ParserMod implements Parser {
     int totalPatterns = countPatterns(order, songLength);
     if (!format.isLegacy())
       reader.skip(4); // skip id
-    Pattern[] patterns = readPatterns(reader, totalPatterns, format, instruments);
+    Pattern[] patterns = readPatterns(reader, totalPatterns, format);
     if (patterns == null)
       return null;
     readInstrumentSamples(reader, instruments);
@@ -74,7 +74,7 @@ public final class ParserMod implements Parser {
     return format;
   }
 
-  private static Pattern[] readPatterns(ByteReader reader, int n, ModFormat format, Instrument[] ins) {
+  private static Pattern[] readPatterns(ByteReader reader, int n, ModFormat format) {
     Pattern[] patterns = new Pattern[n];
     for (int i = 0; i < n; i++) {
       if (format.type == trekker && format.tracks == 8) {
@@ -108,23 +108,18 @@ public final class ParserMod implements Parser {
         int b1 = reader.u1();
         int b2 = reader.u1();
         int b3 = reader.u1();
-        int i = (b0 & 0xF0 | (b2 & 0xF0) >> 4) - 1;
+        int ins = (b0 & 0xF0 | (b2 & 0xF0) >> 4) - 1;
         int period = (b0 << 8 | b1) & 0xFFF;
         int key = Period.getKeyForPeriod(period * 100);
         int effect = type == ust ? ustEffect(b2 & 0xF, b3) : b2 & 0xF;
         int param = type == ust ? ustEffectParam(b2 & 0xF, b3) : b3;
-        int paramX = param >> 4;
-        int paramY = param & 15;
         if (effect == 0x0E) { // extended commands
-          effect = effect << 4 | paramX;
-          paramX = 0;
+          effect = effect << 4 | param >> 4 & 0xF;
+          param &= 0xF;
         }
-        if (effect == 0x0D) { // pattern break dec to hex
-          int dec = paramX * 10 + paramY;
-          paramX = dec >> 4;
-          paramY = dec & 15;
-        }
-        block.setNote(track, row, Note.create(key, i, effect, param, false));
+        if (effect == 0x0D) // pattern break dec to hex
+          param = (param >> 4) * 10 + (param & 0xF);
+        block.setNote(track, row, Note.create(key, ins, effect, param));
       }
     }
     return block;
