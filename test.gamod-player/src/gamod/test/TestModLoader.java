@@ -19,7 +19,7 @@ public class TestModLoader extends ActivityTestCase {
 
   public void test_empty_mod() {
     byte[] a = readResource(R.raw.empty);
-    Parser parser = new gamod.format.ParserMod();
+    gamod.format.Parser parser = new ParserMod();
     assertTrue(parser.test(a));
     Mod mod = parser.parse(a);
     assertEquals(4, mod.tracks);

@@ -3,6 +3,7 @@
 	<name>app.gamod-player</name>
 	<comment></comment>
 	<projects>
+		<project>lib.gamod</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

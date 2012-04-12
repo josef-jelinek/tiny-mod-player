@@ -3,6 +3,7 @@
 	<name>test.gamod</name>
 	<comment></comment>
 	<projects>
+		<project>lib.gamod</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
