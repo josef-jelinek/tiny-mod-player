@@ -45,20 +45,24 @@ public final class ModPlayer {
     if (!active) {
       this.mod = mod;
       reset();
+      audioDevice.play();
       active = true;
       paused = false;
     }
   }
 
   public synchronized void stop() {
+    audioDevice.stop();
     active = false;
   }
 
   public void pause() {
+    audioDevice.pause();
     paused = true;
   }
 
   public void resume() {
+    audioDevice.play();
     paused = false;
   }
 
@@ -133,10 +137,10 @@ public final class ModPlayer {
   private void doLine() {
     final Pattern block = mod.patterns[mod.patternOrder[blockIndex]];
     if (line == 0)
-      Log.d("tinymod", "#" + blockIndex + " (" + mod.patternOrder[blockIndex] + ")");
-    Log.d("tinymod", block.rowString(line));
+      Log.d("MOD", "#" + blockIndex + " (" + mod.patternOrder[blockIndex] + ")");
+    Log.d("MOD", block.rowString(line));
     for (int i = 0; i < block.tracks(); i++) {
-      track[i].doTrack(block.getNote(i, line)); // update sound (volume and pitch)
+      track[i].doTrack(block.getNote(i, line), mod.instruments); // update sound (volume and pitch)
       doTrack(block.getNote(i, line)); // update control (global)
     }
     nextPos();
@@ -144,9 +148,9 @@ public final class ModPlayer {
       track[i].checkHold(block.getNote(i, line), ticksPerLine);
   }
 
-  private void doTrack(final Note note) {
-    final int efxy = note.paramX * 16 + note.paramY;
-    switch (note.effect) {
+  private void doTrack(long note) {
+    final int efxy = Note.getParam(note);
+    switch (Note.getEffect(note)) {
     case 0x0B: // jump to block
       jump(efxy == 0 ? blockIndex + 1 : efxy, 0);
       break;

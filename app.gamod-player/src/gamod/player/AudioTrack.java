@@ -91,29 +91,32 @@ public final class AudioTrack {
     sound.mix(left, right, from, to, filter, volume * 16);
   }
 
-  public void doTrack(final Note note) {
+  public void doTrack(long note, Instrument[] instruments) {
     effect = NONE;
     restoreTone();
-    final int efx = currentParamX = note.paramX;
-    final int efy = currentParamY = note.paramY;
-    final int efxy = efx * 16 + efy;
+    int key = Note.getKey(note);
+    int ins = Note.getInstrument(note);
+    int eff = Note.getEffect(note);
+    int efxy = Note.getParam(note);
+    int efx = currentParamX = efxy >> 4;
+    int efy = currentParamY = efxy & 0xF;
     nextVolume = -1;
-    setNextInstrument(note.instrument);
+    setNextInstrument(ins < 0 || ins >= instruments.length ? null : instruments[ins]);
     nextKey = 0;
-    if (note.key == 128) // stop note
+    if (key == 128) // stop note
       stopNote = true;
-    if (note.effect == 0x3 || note.effect == 0x5)
+    if (eff == 0x3 || eff == 0x5)
       switchInstrument(); // only change instrument and volume if appropriate
     else {
-      nextKey = note.key;
-      if ((note.effect != 0xED || efxy == 0) && note.effect != 0xFD)
+      nextKey = key;
+      if ((eff != 0xED || efxy == 0) && eff != 0xFD)
         playNote(); // not portamente to note or delay note or pitch change -> play note
     }
-    switch (note.effect) {
+    switch (eff) {
     case 0x00: // arpeggio - chord simulation
       if (efxy != 0) {
-        if (note.key > 0)
-          arpeggioNotes[0] = note.key;
+        if (key > 0)
+          arpeggioNotes[0] = key;
         if (arpeggioNotes[0] >= 0) {
           effect = ARPEGGIO;
           effectCounter = 0;
@@ -132,8 +135,8 @@ public final class AudioTrack {
       effect = PORTA;
       if (efxy != 0)
         portaSpeed = efxy;
-      if (note.key > 0 && note.key < 128)
-        portaKey = note.key;
+      if (key > 0 && key < 128)
+        portaKey = key;
       break;
     case 0x04: // shallower vibrato - oscilate pitch (half change)
     case 0x14: // deeper vibrato (from MED and old N.T.)
@@ -141,12 +144,12 @@ public final class AudioTrack {
       if (efx != 0)
         vibratoSpeed = efx;
       if (efy != 0)
-        vibratoDepth = efy * (note.effect == 0x4 ? 2 : 4);
+        vibratoDepth = efy * (eff == 0x4 ? 2 : 4);
       break;
     case 0x05: // portamente to note + volume slide (param. is for volume)
       effect = PORTA_VOLUME_SLIDE;
-      if (note.key > 0 && note.key < 128)
-        portaKey = note.key;
+      if (key > 0 && key < 128)
+        portaKey = key;
       break;
     case 0x06: // vibrato + volume slide (param. is for volume)
       effect = VIBRATO_VOLUME_SLIDE;
@@ -251,8 +254,8 @@ public final class AudioTrack {
     // G 0xEE - pattern delay
     // X 0xEF - invert loop - only a fuzzy idea about this
     case 0xFD: // change frequency (from MED)
-      if (note.key > 0 && note.key < 128)
-        sound.setKeyPeriod(note.key);
+      if (key > 0 && key < 128)
+        sound.setKeyPeriod(key);
       break;
     }
   }
@@ -270,16 +273,16 @@ public final class AudioTrack {
     }
   }
 
-  public void checkHold(final Note note, final int ticks) { // called right after doTrack with the new note
+  public void checkHold(long note, int ticks) { // called right after doTrack with the new note
     if (hold >= 0)
-      if (note.isHolding())
+      if (Note.isHolding(note))
         hold += ticks;
     if (stopNote)
       hold = 0;
     stopNote = false;
   }
 
-  public void doEffects(final boolean newLine) { // should be called each tick (after doTrack and chechHold if new line)
+  public void doEffects(boolean newLine) { // should be called each tick (after doTrack and chechHold if new line)
     restoreTone();
     doDecay();
     if (effect == DELAY_NOTE || effect == DELAY_RETRIG_NOTE)
@@ -345,23 +348,23 @@ public final class AudioTrack {
     }
   }
 
-  private static boolean isPortamenteUpOrDown(final int effect) {
+  private static boolean isPortamenteUpOrDown(int effect) {
     return effect == PORTA_UP || effect == PORTA_DOWN;
   }
 
-  private static int getPortamenteDirection(final int effect) {
+  private static int getPortamenteDirection(int effect) {
     return effect == PORTA_UP ? -1 : effect == PORTA_DOWN ? 1 : 0;
   }
 
-  private static boolean isVibrato(final int effect) {
+  private static boolean isVibrato(int effect) {
     return effect == VIBRATO || effect == VIBRATO_VOLUME_SLIDE;
   }
 
-  private static boolean isVolumeSlide(final int effect) {
+  private static boolean isVolumeSlide(int effect) {
     return effect == VOLUME_SLIDE || effect == PORTA_VOLUME_SLIDE || effect == VIBRATO_VOLUME_SLIDE;
   }
 
-  private static boolean isPortamente(final int effect) {
+  private static boolean isPortamente(int effect) {
     return effect == PORTA || effect == PORTA_VOLUME_SLIDE;
   }
 

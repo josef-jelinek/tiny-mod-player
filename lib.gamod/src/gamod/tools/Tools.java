@@ -12,7 +12,7 @@ public final class Tools {
   }
 
   public static int crop(int x, int low, int high) {
-    return Math.max(low, Math.min(high, x));
+    return x < low ? low : x > high ? high : x;
   }
 
   public static String trimEnd(String s, char c) {

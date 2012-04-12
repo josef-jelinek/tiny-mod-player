@@ -1,30 +1,39 @@
 package gamod.client.audio;
 
 import gamod.player.AudioDevice;
-import android.media.AudioFormat;
-import android.media.AudioManager;
-import android.media.AudioTrack;
+import android.media.*;
 
 public final class AndroidAudioDevice implements AudioDevice {
-  private static final int MUSIC = AudioManager.STREAM_MUSIC;
-  private static final int STREAM = AudioTrack.MODE_STREAM;
-  private static final int STEREO = AudioFormat.CHANNEL_OUT_STEREO;
-  private static final int PCM16BIT = AudioFormat.ENCODING_PCM_16BIT;
+  private static final int music = AudioManager.STREAM_MUSIC;
+  private static final int stream = AudioTrack.MODE_STREAM;
+  private static final int stereo = AudioFormat.CHANNEL_OUT_STEREO;
+  private static final int pcm16b = AudioFormat.ENCODING_PCM_16BIT;
   private final int sampleRateInHz;
   private final AudioTrack track;
 
-  public AndroidAudioDevice(final int sampleRateInHz) {
+  public AndroidAudioDevice(int sampleRateInHz) {
     this.sampleRateInHz = sampleRateInHz;
-    final int bufferSize = AudioTrack.getMinBufferSize(sampleRateInHz, STEREO, PCM16BIT);
-    track = new AudioTrack(MUSIC, sampleRateInHz, STEREO, PCM16BIT, bufferSize, STREAM);
-    track.play();
+    int bufferSize = AudioTrack.getMinBufferSize(sampleRateInHz, stereo, pcm16b);
+    track = new AudioTrack(music, sampleRateInHz, stereo, pcm16b, bufferSize, stream);
   }
 
   public int getSampleRateInHz() {
     return sampleRateInHz;
   }
 
-  public void write(final short[] samples) {
+  public void write(short[] samples) {
     track.write(samples, 0, samples.length);
+  }
+
+  public void play() {
+    track.play();
+  }
+
+  public void pause() {
+    track.pause();
+  }
+
+  public void stop() {
+    track.stop();
   }
 }

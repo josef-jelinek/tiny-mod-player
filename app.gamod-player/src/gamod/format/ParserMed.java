@@ -42,7 +42,7 @@ public final class ParserMed implements Parser {
     data.skip(15); // 4reserved 2pstate 2pblock 2pline 2pseqnum 2actplayline 1counter
     int extrasongs = data.u1();
     if (extrasongs > 0)
-      Log.i("tinymod", "Extrasongs " + extrasongs);
+      Log.i("MOD", "Extrasongs " + extrasongs);
     // process song
     if (song == 0)
       return null;
@@ -181,7 +181,7 @@ public final class ParserMed implements Parser {
     final int length = data.s4();
     final int type = data.s2();
     if (type > 0)
-      Log.i("tinymod", "Unsupported sample type " + type);
+      Log.i("MOD", "Unsupported sample type " + type);
     if (type == 0) {
       final Instrument instrument = new SampledInstrument(index + 1, length);
       for (int i = 0; i < length; i++)
@@ -231,7 +231,7 @@ public final class ParserMed implements Parser {
             final int ln = data.s4();
             final int tp = data.s2();
             if (tp != 0)
-              Log.i("tinymod", "Illegal type of hybrid instrument waveform - " + tp);
+              Log.i("MOD", "Illegal type of hybrid instrument waveform - " + tp);
             instrument.waveform(wform, ln);
             for (int i = 0; i < ln; i++)
               instrument.data(wform)[i] = (byte)data.s1();
@@ -252,7 +252,7 @@ public final class ParserMed implements Parser {
       final Pattern block = new Pattern(numtracks, lines);
       for (int line = 0; line < lines; line++)
         for (int track = 0; track < numtracks; track++)
-          block.setNote(track, line, readMmd0Note(data, instruments, hexVol, chan5to8, bpmMode));
+          block.setNote(track, line, readMmd0Note(data, instruments.length, hexVol, chan5to8, bpmMode));
       return block;
     }
     if (id.equals("MMD1")) {
@@ -262,35 +262,35 @@ public final class ParserMed implements Parser {
       data.s4(); // BlockInfo - unimportant for the player
       for (int line = 0; line < lines; line++)
         for (int track = 0; track < numtracks; track++)
-          block.setNote(track, line, readMmd1Note(data, instruments, hexVol, chan5to8, bpmMode));
+          block.setNote(track, line, readMmd1Note(data, instruments.length, hexVol, chan5to8, bpmMode));
       return block;
     }
     return null;
   }
 
-  private static Note readMmd0Note(final ByteReader data, final Instrument[] instruments,
-      final boolean hexVol, final boolean chan5to8, final boolean bpmMode) {
-    final int b0 = data.u1();
-    final int b1 = data.u1();
-    final int b2 = data.u1();
-    final int smp = (b0 >> 1 & 32 | b0 >> 3 & 16 | b1 >> 4 & 15) - 1;
-    return getMedNote(instruments, b0 & 63, smp, medCommand(b1 & 15, b2, hexVol, chan5to8, bpmMode));
+  private static long readMmd0Note(ByteReader data, int instruments, boolean hexVol, boolean chan5to8, boolean bpmMode) {
+    int b0 = data.u1();
+    int b1 = data.u1();
+    int b2 = data.u1();
+    int smp = (b0 >> 1 & 32 | b0 >> 3 & 16 | b1 >> 4 & 15) - 1;
+    if (smp >= instruments)
+      smp = -1;
+    return getMedNote(b0 & 63, smp, medCommand(b1 & 15, b2, hexVol, chan5to8, bpmMode));
   }
 
-  private static Note readMmd1Note(final ByteReader data, final Instrument[] instruments,
-      final boolean hexVol, final boolean chan5to8, final boolean bpmMode) {
-    final int b0 = data.u1() & 127;
-    final int b1 = data.u1() & 63;
-    final int b2 = data.u1();
-    final int b3 = data.u1();
-    final int smp = b1 - 1;
-    return getMedNote(instruments, b0, smp, medCommand(b2, b3, hexVol, chan5to8, bpmMode));
+  private static long readMmd1Note(ByteReader data, int instruments, boolean hexVol, boolean chan5to8, boolean bpmMode) {
+    int b0 = data.u1() & 127;
+    int b1 = data.u1() & 63;
+    int b2 = data.u1();
+    int b3 = data.u1();
+    int smp = b1 - 1;
+    if (smp >= instruments)
+      smp = -1;
+    return getMedNote(b0, smp, medCommand(b2, b3, hexVol, chan5to8, bpmMode));
   }
 
-  private static Note getMedNote(final Instrument[] instruments, final int key, final int smp,
-      final int effxy) {
-    final Instrument instr = smp < 0 || smp >= instruments.length ? null : instruments[smp];
-    return new Note(key, instr, effxy >> 8, effxy >> 4 & 15, effxy & 15, instr != null && key == 0);
+  private static long getMedNote(int key, int smp, final int effxy) {
+    return Note.create(key, smp, effxy >> 8, effxy & 0xFF, smp >= 0 && key == 0);
   }
 
   private static int[] bpm1to9 = { 179, 164, 152, 141, 131, 123, 116, 110, 104 };

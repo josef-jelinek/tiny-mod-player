@@ -3,43 +3,6 @@ package gamod;
 import gamod.tools.*;
 
 public final class Note {
-  public final int key;
-  public final Instrument instrument;
-  public final int effect;
-  public final int paramX;
-  public final int paramY;
-  private final boolean hold;
-
-  public Note(int key, Instrument instrument, int effect, int paramX, int paramY, boolean hold) {
-    this.key = Tools.crop(key, 0, 128);
-    this.instrument = instrument;
-    this.effect = effect;
-    this.paramX = paramX;
-    this.paramY = paramY;
-    this.hold = hold && this.key < 128;
-  }
-
-  public boolean isHolding() {
-    return hold || key > 0 && key < 128 && (effect == 0x03 || effect == 0x05);
-  }
-
-  @Override
-  public String toString() {
-    return Period.getKeyName(key, hold) + " " + getInstrumentName() + " " + getEffectName();
-  }
-
-  private String getInstrumentName() {
-    return instrument == null ? "···" : d3(instrument.id);
-  }
-
-  private String getEffectName() {
-    return hasEffect() ? h2(effect) + h1(paramX) + h1(paramY) : "····";
-  }
-
-  private boolean hasEffect() {
-    return effect != 0 || paramX != 0 || paramY != 0;
-  }
-  
   private static long holdMask = 1L << 63;
 
   // H0000000 0000IIII IIIIIIII KKKKKKKK EEEEEEEE EEEEEEEE PPPPPPPP PPPPPPPP
@@ -107,10 +70,6 @@ public final class Note {
     String s = x / 100 == 0 ? " " : "" + h1(x / 100);
     s += x / 10 % 10 == 0 ? " " : h1(x / 10 % 10);
     return s + h1(x % 10);
-  }
-
-  private static String h2(int x) {
-    return "" + h1(x / 16) + h1(x % 16);
   }
 
   private static String h4(int x) {

@@ -3,7 +3,7 @@
 	<name>test.gamod-player</name>
 	<comment></comment>
 	<projects>
-		<project>tiny-mod-player</project>
+		<project>gamod-player</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

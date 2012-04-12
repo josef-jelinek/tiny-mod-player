@@ -78,8 +78,8 @@ public final class ParserMod implements Parser {
     Pattern[] patterns = new Pattern[n];
     for (int i = 0; i < n; i++) {
       if (format.type == trekker && format.tracks == 8) {
-        Pattern pattern1 = readPattern(reader, format.type, 4, ins);
-        Pattern pattern2 = readPattern(reader, format.type, 4, ins);
+        Pattern pattern1 = readPattern(reader, format.type, 4);
+        Pattern pattern2 = readPattern(reader, format.type, 4);
         if (pattern1 == null || pattern2 == null)
           return null;
         patterns[i] = new Pattern(8, 64);
@@ -90,7 +90,7 @@ public final class ParserMod implements Parser {
           }
         }
       } else {
-        patterns[i] = readPattern(reader, format.type, format.tracks, ins);
+        patterns[i] = readPattern(reader, format.type, format.tracks);
         if (patterns[i] == null)
           return null;
       }
@@ -98,7 +98,7 @@ public final class ParserMod implements Parser {
     return patterns;
   }
 
-  private static Pattern readPattern(ByteReader reader, ModFormat.Type type, int tracks, Instrument[] ins) {
+  private static Pattern readPattern(ByteReader reader, ModFormat.Type type, int tracks) {
     if (reader.available() < 64 * tracks * 4)
       return null;
     Pattern block = new Pattern(tracks, 64);
@@ -124,9 +124,7 @@ public final class ParserMod implements Parser {
           paramX = dec >> 4;
           paramY = dec & 15;
         }
-        boolean isOutOfRange = i < 0 || i >= ins.length;
-        Instrument instrument = isOutOfRange ? null : ins[i];
-        block.setNote(track, row, new Note(key, instrument, effect, paramX, paramY, false));
+        block.setNote(track, row, Note.create(key, i, effect, param, false));
       }
     }
     return block;

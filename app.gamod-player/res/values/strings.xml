@@ -11,9 +11,9 @@
   <string
     name="button_pause">Pause</string>
   <string
-    name="intent_action_play">tinymod.intent.action.PLAY</string>
+    name="intent_action_play">gamod.intent.action.PLAY</string>
   <string
-    name="intent_action_pause">tinymod.intent.action.PAUSE</string>
+    name="intent_action_pause">gamod.intent.action.PAUSE</string>
   <string
-    name="intent_action_stop">tinymod.intent.action.STOP</string>
+    name="intent_action_stop">gamod.intent.action.STOP</string>
 </resources>

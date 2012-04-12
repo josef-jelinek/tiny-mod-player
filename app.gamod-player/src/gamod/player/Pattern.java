@@ -3,15 +3,15 @@ package gamod.player;
 import gamod.Note;
 
 public final class Pattern {
-  private final Note[][] notes;
+  private final long[][] notes;
   private final String[] lineStrings;
 
   public Pattern(int tracks, int rows) {
-    notes = new Note[tracks][rows];
+    notes = new long[tracks][rows];
     lineStrings = new String[rows];
   }
 
-  public Note getNote(int track, int row) {
+  public long getNote(int track, int row) {
     return notes[track][row];
   }
 
@@ -26,7 +26,7 @@ public final class Pattern {
     return notes.length;
   }
 
-  public void setNote(int track, int row, Note note) {
+  public void setNote(int track, int row, long note) {
     notes[track][row] = note;
   }
 
@@ -34,7 +34,7 @@ public final class Pattern {
     if (lineStrings[row] == null) {
       String s = "" + row / 100 % 10 + row / 10 % 10 + row % 10;
       for (int track = 0; track < tracks(); track++)
-        s += "|" + getNote(track, row);
+        s += "|" + Note.toString(getNote(track, row));
       lineStrings[row] = s + "|";
     }
     return lineStrings[row];
