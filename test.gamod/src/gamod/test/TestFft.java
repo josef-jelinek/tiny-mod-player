@@ -49,29 +49,41 @@ public class TestFft {
 
   @Test
   public final void test_fixFFT() {
-    int M = 4;
-    int N = 1 << M;
-    short[] real = new short[N], imag = new short[N], orig = new short[N];
-    for (int i = 0; i < N; i++)
-      real[i] = orig[i] = (short)(16000 * i / N - 8000);
-    assertEquals(0, Fourier.fixFFT(real, imag, M, false));
-    for (int i = 0; i < N; i++)
+    int log2size = 4;
+    int size = 1 << log2size;
+    short[] real = new short[size], imag = new short[size], orig = new short[size];
+    for (int i = 0; i < size; i++)
+      real[i] = orig[i] = (short)(16000 * i / size - 8000);
+    Fourier.fixFFT(real, imag, log2size, false);
+    for (int i = 0; i < size; i++)
       assertEquals(-500, real[i]);
-    assertEquals(0, Fourier.fixFFT(real, imag, M, true));
-    for (int i = 0; i < N; i++)
-      assertEquals(orig[i], real[i], 5);
+    Fourier.fixFFT(real, imag, log2size, true);
+    for (int i = 0; i < size; i++)
+      assertEquals(orig[i], real[i], 2);
   }
 
   @Test
   public final void test_fixFFT_extreme_square() {
-    int M = 4;
-    int N = 1 << M;
-    short[] real = new short[N], imag = new short[N], orig = new short[N];
-    for (int i = 0; i < N; i++)
-      real[i] = orig[i] = (short)(i < N / 2 ? 32767 : -32768);
-    assertEquals(0, Fourier.fixFFT(real, imag, M, false));
-    assertEquals(1, Fourier.fixFFT(real, imag, M, true));
-    for (int i = 0; i < N; i++)
-      assertEquals(orig[i], real[i] * 2, 16);
+    int log2size = 4;
+    int size = 1 << log2size;
+    short[] real = new short[size], imag = new short[size], orig = new short[size];
+    for (int i = 0; i < size; i++)
+      real[i] = orig[i] = (short)(i < size / 2 ? 32767 : -32768);
+    Fourier.fixFFT(real, imag, log2size, false);
+    Fourier.fixFFT(real, imag, log2size, true);
+    for (int i = 0; i < size; i++)
+      assertEquals(orig[i], real[i], 10);
+  }
+
+  @Test
+  public final void test_fixFFT_extreme_pulse() {
+    int log2size = 4;
+    int size = 1 << log2size;
+    short[] real = new short[size], imag = new short[size], orig = new short[size];
+    real[0] = orig[0] = 32767;
+    Fourier.fixFFT(real, imag, log2size, false);
+    Fourier.fixFFT(real, imag, log2size, true);
+    for (int i = 0; i < size; i++)
+      assertEquals(orig[i], real[i], 15);
   }
 }

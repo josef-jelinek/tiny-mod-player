@@ -34,9 +34,8 @@ public final class Fourier {
   private static void FFTLoop(int n, int mmax, double[] ar, double[] ai, double wpr, double wpi) {
     double wr = 1.0;
     double wi = 0.0;
-    int istep = mmax << 1;
     for (int m = 0; m < mmax; m++) {
-      for (int i = m; i < n; i += istep) {
+      for (int i = m; i < n; i += mmax * 2) {
         int j = i + mmax;
         double tr = wr * ar[j] - wi * ai[j];
         double ti = wr * ai[j] + wi * ar[j];
@@ -78,83 +77,60 @@ public final class Fourier {
     }
   }
 
-  private final static int log2sintabLen = 9;
-  private final static short[] sintab = new short[1 << log2sintabLen];
+  private final static int log2sintabLength = 9;
+  private final static short[] sintab = new short[1 << log2sintabLength];
+  private static final int costabIndex = sintab.length / 4;
   static {
     for (int i = 0; i < sintab.length; i++)
-      sintab[i] = (short)(32767 * sin(2 * PI * i / sintab.length));
+      sintab[i] = (short)(Math.round(32767 * sin(2 * PI * i / sintab.length)));
   }
   
-  public static int fixFFT(short fr[], short fi[], int m, boolean inverse) {
+  public static void fixFFT(short real[], short imag[], int m, boolean inverse) {
     int n = 1 << m;
-    if (n > sintab.length)
-      return -1;
-    shuffle(fr, fi, n);
-    int scale = 0;
-    int k = log2sintabLen - 1;
-    for (int l = 1; l < n; l *= 2) {
-      boolean shift = true;
-      if (inverse) {
-        shift = false;
-        for (int i = 0; i < n; ++i) {
-          if (fr[i] > 16383 || fr[i] < -16383 || fi[i] > 16383 || fi[i] < -16383) {
-            shift = true;
-            break;
+    if (m > log2sintabLength)
+      throw new IllegalArgumentException("Input too long: " + n + " > " + sintab.length);
+    shuffle(real, imag, n);
+    for (int i = 1, k = sintab.length / 2; i < n; i *= 2, k /= 2) {
+      for (int j = 0; j < i; j++) {
+        int cosj = sintab[costabIndex + j * k];
+        int sinj = inverse ? sintab[j * k] : -sintab[j * k];
+        for (int i1 = j; i1 < n; i1 += i * 2) {
+          int i2 = i1 + i;
+          int real1 = real[i1];
+          int imag1 = imag[i1];
+          int real2 = cosj * real[i2] - sinj * imag[i2] + (1 << 14) >> 15;
+          int imag2 = cosj * imag[i2] + sinj * real[i2] + (1 << 14) >> 15;
+          if (inverse) {
+            real[i1] = (short)(real1 + real2);
+            imag[i1] = (short)(imag1 + imag2);
+            real[i2] = (short)(real1 - real2);
+            imag[i2] = (short)(imag1 - imag2);
+          } else {
+            real[i1] = (short)((real1 + real2) / 2);
+            imag[i1] = (short)((imag1 + imag2) / 2);
+            real[i2] = (short)((real1 - real2) / 2);
+            imag[i2] = (short)((imag1 - imag2) / 2);
           }
         }
-        if (shift)
-          scale += 1;
       }
-      int istep = l << 1;
-      for (m = 0; m < l; ++m) {
-        int j = m << k;
-        int wr = sintab[j + sintab.length / 4];
-        int wi = inverse ? sintab[j] : -sintab[j];
-        if (shift) {
-          wr >>= 1;
-          wi >>= 1;
-        }
-        for (int i = m; i < n; i += istep) {
-          j = i + l;
-          int tr = fixMul(wr, fr[j]) - fixMul(wi, fi[j]);
-          int ti = fixMul(wr, fi[j]) + fixMul(wi, fr[j]);
-          int qr = fr[i];
-          int qi = fi[i];
-          if (shift) {
-            qr >>= 1;
-            qi >>= 1;
-          }
-          fr[j] = (short)(qr - tr);
-          fi[j] = (short)(qi - ti);
-          fr[i] = (short)(qr + tr);
-          fi[i] = (short)(qi + ti);
-        }
-      }
-      k -= 1;
     }
-    return scale;
   }
 
-  private static void shuffle(short[] ar, short[] ai, int n) {
-    int ii = 0;
-    for (int i = 1; i < n; ++i) {
+  private static void shuffle(short[] real, short[] imag, int n) {
+    int i2 = 0;
+    for (int i1 = 1; i1 < n; i1++) {
       int k = n >> 1;
-      while (ii + k >= n)
+      while (i2 + k >= n)
         k >>= 1;
-      ii = (ii & (k - 1)) + k;
-      if (i < ii) {
-        int tr = ar[i];
-        ar[i] = ar[ii];
-        ar[ii] = (short)tr;
-        int ti = ai[i];
-        ai[i] = ai[ii];
-        ai[ii] = (short)ti;
+      i2 = (i2 & (k - 1)) + k;
+      if (i1 < i2) {
+        short real1 = real[i1];
+        real[i1] = real[i2];
+        real[i2] = real1;
+        short imag1 = imag[i1];
+        imag[i1] = imag[i2];
+        imag[i2] = imag1;
       }
     }
-  }
-
-  private static int fixMul(int a, int b) {
-    int x = a * b >> 14;
-    return (x & 1) + (x >> 1);
   }
 }
