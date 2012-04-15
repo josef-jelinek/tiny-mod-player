@@ -1,6 +1,6 @@
 package gamod.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import gamod.tools.Fourier;
 import org.junit.Test;
 
@@ -51,14 +51,27 @@ public class TestFft {
   public final void test_fixFFT() {
     int M = 4;
     int N = 1 << M;
-    short[] real = new short[N], imag = new short[N], a = new short[N];
+    short[] real = new short[N], imag = new short[N], orig = new short[N];
     for (int i = 0; i < N; i++)
-      real[i] = a[i] = (short)(16000 * i / N - 8000);
+      real[i] = orig[i] = (short)(16000 * i / N - 8000);
     assertEquals(0, Fourier.fixFFT(real, imag, M, false));
     for (int i = 0; i < N; i++)
-      assertEquals(real[i], -500);
+      assertEquals(-500, real[i]);
     assertEquals(0, Fourier.fixFFT(real, imag, M, true));
     for (int i = 0; i < N; i++)
-      assertEquals(real[i], a[i], 5);
+      assertEquals(orig[i], real[i], 5);
+  }
+
+  @Test
+  public final void test_fixFFT_extreme_square() {
+    int M = 4;
+    int N = 1 << M;
+    short[] real = new short[N], imag = new short[N], orig = new short[N];
+    for (int i = 0; i < N; i++)
+      real[i] = orig[i] = (short)(i < N / 2 ? 32767 : -32768);
+    assertEquals(0, Fourier.fixFFT(real, imag, M, false));
+    assertEquals(1, Fourier.fixFFT(real, imag, M, true));
+    for (int i = 0; i < N; i++)
+      assertEquals(orig[i], real[i] * 2, 16);
   }
 }
