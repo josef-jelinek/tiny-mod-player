@@ -6,20 +6,17 @@ import org.junit.Test;
 
 public class TestFft {
   @Test
-  public final void testDFT() {
+  public final void test_DFT() {
     int n = 8;
-    double[] ar = new double[n];
-    double[] ai = new double[n];
-    double[] br = new double[n];
-    double[] bi = new double[n];
-    double[] cr = new double[n];
-    double[] ci = new double[n];
+    double[] ar = new double[n], ai = new double[n];
+    double[] br = new double[n], bi = new double[n];
+    double[] cr = new double[n], ci = new double[n];
     for (int i = 0; i < n; i++)
       ar[i] = 2.0 * i / n - 1.0;
-    Fourier.DFT(1, n, ar, ai, br, bi);
+    Fourier.DFT(ar, ai, br, bi, n);
     for (int i = 0; i < n; i++)
       assertEquals(br[i], -1.0, 0.001);
-    Fourier.DFT(-1, n, br, bi, cr, ci);
+    Fourier.DFTi(br, bi, cr, ci, n);
     for (int i = 0; i < n; i++) {
       assertEquals(ar[i], cr[i], 0.001);
       assertEquals(ai[i], ci[i], 0.001);
@@ -27,20 +24,17 @@ public class TestFft {
   }
 
   @Test
-  public final void testSinFFT() {
+  public final void test_FFT() {
     int n = 8;
-    double[] ar = new double[n];
-    double[] ai = new double[n];
-    double[] br = new double[n];
-    double[] bi = new double[n];
-    double[] cr = new double[n];
-    double[] ci = new double[n];
+    double[] ar = new double[n], ai = new double[n];
+    double[] br = new double[n], bi = new double[n];
+    double[] cr = new double[n], ci = new double[n];
     for (int i = 0; i < n; i++)
       ar[i] = 2.0 * i / n - 1.0;
-    Fourier.sinFFT(1, n, ar, ai, br, bi);
+    Fourier.FFT(ar, ai, br, bi, n);
     for (int i = 0; i < n; i++)
       assertEquals(br[i], -1.0, 0.001);
-    Fourier.sinFFT(-1, n, br, bi, cr, ci);
+    Fourier.FFTi(br, bi, cr, ci, n);
     for (int i = 0; i < n; i++) {
       assertEquals(ar[i], cr[i], 0.001);
       assertEquals(ai[i], ci[i], 0.001);
@@ -52,12 +46,12 @@ public class TestFft {
     int log2size = 4;
     int size = 1 << log2size;
     short[] real = new short[size], imag = new short[size], orig = new short[size];
-    for (int i = 0; i < size; i++)
-      real[i] = orig[i] = (short)(16000 * i / size - 8000);
-    Fourier.fixFFT(real, imag, log2size, false);
+    setRampUp(real, orig, size);
+    Fourier.fixFFT(real, imag, log2size);
     for (int i = 0; i < size; i++)
       assertEquals(-500, real[i]);
-    Fourier.fixFFT(real, imag, log2size, true);
+    isSpectrumSymetric(real, imag, size);
+    Fourier.fixFFTi(real, imag, log2size);
     for (int i = 0; i < size; i++)
       assertEquals(orig[i], real[i], 2);
   }
@@ -67,12 +61,12 @@ public class TestFft {
     int log2size = 4;
     int size = 1 << log2size;
     short[] real = new short[size], imag = new short[size], orig = new short[size];
+    setSquare(real, orig, size);
+    Fourier.fixFFT(real, imag, log2size);
+    isSpectrumSymetric(real, imag, size);
+    Fourier.fixFFTi(real, imag, log2size);
     for (int i = 0; i < size; i++)
-      real[i] = orig[i] = (short)(i < size / 2 ? 32767 : -32768);
-    Fourier.fixFFT(real, imag, log2size, false);
-    Fourier.fixFFT(real, imag, log2size, true);
-    for (int i = 0; i < size; i++)
-      assertEquals(orig[i], real[i], 10);
+      assertEquals(orig[i], real[i], 9);
   }
 
   @Test
@@ -80,10 +74,32 @@ public class TestFft {
     int log2size = 4;
     int size = 1 << log2size;
     short[] real = new short[size], imag = new short[size], orig = new short[size];
-    real[0] = orig[0] = 32767;
-    Fourier.fixFFT(real, imag, log2size, false);
-    Fourier.fixFFT(real, imag, log2size, true);
+    setPulse(real, orig);
+    Fourier.fixFFT(real, imag, log2size);
+    isSpectrumSymetric(real, imag, size);
+    Fourier.fixFFTi(real, imag, log2size);
     for (int i = 0; i < size; i++)
       assertEquals(orig[i], real[i], 15);
+  }
+
+  private void setRampUp(short[] real, short[] orig, int size) {
+    for (int i = 0; i < size; i++)
+      real[i] = orig[i] = (short)(16000 * i / size - 8000);
+  }
+
+  private void setSquare(short[] real, short[] orig, int size) {
+    for (int i = 0; i < size; i++)
+      real[i] = orig[i] = (short)(i < size / 2 ? 32767 : -32768);
+  }
+
+  private void setPulse(short[] real, short[] orig) {
+    real[0] = orig[0] = 32767;
+  }
+
+  private void isSpectrumSymetric(short[] real, short[] imag, int size) {
+    for (int i1 = 1, i2 = size - 1; i1 < i2; i1++, i2--) {
+      assertEquals(real[i1], real[i2]);
+      assertEquals(imag[i1], -imag[i2]);
+    }
   }
 }
