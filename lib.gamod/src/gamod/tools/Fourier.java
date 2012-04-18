@@ -5,69 +5,63 @@ import java.util.Arrays;
 
 public final class Fourier {
   public static void DFT(double[] ar, double[] ai, double[] br, double[] bi, int n) {
-    double f = -2 * PI / n;
     for (int i = 0; i < n; i++) {
-      br[i] = bi[i] = 0;
-      double arg = f * i;
-      for (int k = 0; k < n; k++) {
-        double cosarg = cos(k * arg);
-        double sinarg = sin(k * arg);
-        br[i] += ar[k] * cosarg - ai[k] * sinarg;
-        bi[i] += ar[k] * sinarg + ai[k] * cosarg;
-      }
+      br[i] = DFTReal(ar, ai, n, -2 * PI * i / n);
+      bi[i] = DFTImag(ar, ai, n, -2 * PI * i / n);
     }
   }
   
   public static void DFTi(double[] ar, double[] ai, double[] br, double[] bi, int n) {
-    double f = 2 * PI / n;
     for (int i = 0; i < n; i++) {
-      br[i] = bi[i] = 0;
-      double arg = f * i;
-      for (int k = 0; k < n; k++) {
-        double cosarg = cos(k * arg);
-        double sinarg = sin(k * arg);
-        br[i] += ar[k] * cosarg - ai[k] * sinarg;
-        bi[i] += ar[k] * sinarg + ai[k] * cosarg;
-      }
+      br[i] = DFTReal(ar, ai, n, 2 * PI * i / n);
+      bi[i] = DFTImag(ar, ai, n, 2 * PI * i / n);
     }
     normalize(n, br, bi);
+  }
+
+  private static double DFTReal(double[] ar, double[] ai, int n, double theta) {
+    double x = 0;
+    for (int k = 0; k < n; k++)
+      x += ar[k] * cos(k * theta) - ai[k] * sin(k * theta);
+    return x;
+  }
+
+  private static double DFTImag(double[] ar, double[] ai, int n, double theta) {
+    double x = 0;
+    for (int k = 0; k < n; k++)
+      x += ar[k] * sin(k * theta) + ai[k] * cos(k * theta);
+    return x;
   }
 
   public static void FFT(double[] ar, double[] ai, double[] br, double[] bi, int n) {
     shuffle(ar, ai, br, bi, n);
-    for (int mmax = 1; mmax < n; mmax <<= 1) {
-      double theta = PI / mmax;
-      double sinhalftheta = sin(0.5 * theta);
-      FFTLoop(n, mmax, br, bi, -2.0 * sinhalftheta * sinhalftheta, sin(theta));
-    }
+    for (int i = 1; i < n; i *= 2)
+      FFTLoop(br, bi, i, n, cos(PI / i), sin(PI / i));
   }
 
   public static void FFTi(double[] ar, double[] ai, double[] br, double[] bi, int n) {
     shuffle(ar, ai, br, bi, n);
-    for (int mmax = 1; mmax < n; mmax <<= 1) {
-      double theta = -PI / mmax;
-      double sinhalftheta = sin(0.5 * theta);
-      FFTLoop(n, mmax, br, bi, -2.0 * sinhalftheta * sinhalftheta, sin(theta));
-    }
+    for (int i = 1; i < n; i *= 2)
+      FFTLoop(br, bi, i, n, cos(-PI / i), sin(-PI / i));
     normalize(n, br, bi);
   }
 
-  private static void FFTLoop(int n, int mmax, double[] ar, double[] ai, double wpr, double wpi) {
-    double wr = 1.0;
-    double wi = 0.0;
-    for (int m = 0; m < mmax; m++) {
-      for (int i = m; i < n; i += mmax * 2) {
-        int j = i + mmax;
-        double tr = wr * ar[j] - wi * ai[j];
-        double ti = wr * ai[j] + wi * ar[j];
-        ar[j] = ar[i] - tr;
-        ai[j] = ai[i] - ti;
-        ar[i] += tr;
-        ai[i] += ti;
+  private static void FFTLoop(double[] real, double[] imag, int i, int n, double cos, double sin) {
+    double xr = 1.0;
+    double xi = 0.0;
+    for (int k = 0; k < i; k++) {
+      for (int i1 = k; i1 < n; i1 += i * 2) {
+        int i2 = i1 + i;
+        double tr = xr * real[i2] - xi * imag[i2];
+        double ti = xr * imag[i2] + xi * real[i2];
+        real[i2] = real[i1] - tr;
+        imag[i2] = imag[i1] - ti;
+        real[i1] += tr;
+        imag[i1] += ti;
       }
-      double wtr = wr;
-      wr += wr * wpr - wi * wpi;
-      wi += wi * wpr + wtr * wpi;
+      double txr = xr;
+      xr = xr * cos - xi * sin;
+      xi = xi * cos + txr * sin;
     }
   }
 
