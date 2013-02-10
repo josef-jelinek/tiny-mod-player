@@ -1,6 +1,5 @@
 package gamod;
 
-import gamod.tools.Tools;
 
 public abstract class Instrument {
   public static final int SAMPLED = 0;

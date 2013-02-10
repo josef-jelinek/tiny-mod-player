@@ -31,4 +31,11 @@
 		<nature>com.android.ide.eclipse.adt.AndroidNature</nature>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>lib.gamod.src</name>
+			<type>2</type>
+			<location>C:/Users/Lemur/Documents/josef-jelinek/tiny-mod-player/lib.gamod/src</location>
+		</link>
+	</linkedResources>
 </projectDescription>

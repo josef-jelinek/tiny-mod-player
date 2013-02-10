@@ -1,13 +1,12 @@
 package gamod.format;
 
-import static gamod.tools.Tools.crop;
+import static gamod.Tools.crop;
 import gamod.*;
 import gamod.io.ByteReader;
 import gamod.player.*;
 import android.util.Log;
 
 public final class ParserMed implements Parser {
-  
   public String name() {
     return "OctaMED";
   }

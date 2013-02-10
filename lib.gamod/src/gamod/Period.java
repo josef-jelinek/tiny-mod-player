@@ -1,6 +1,6 @@
-package gamod.tools;
+package gamod;
 
-import static gamod.tools.Tools.crop;
+import static gamod.Tools.crop;
 import static java.lang.Math.*;
 
 public final class Period {

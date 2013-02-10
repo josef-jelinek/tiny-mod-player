@@ -1,12 +1,12 @@
 package gamod.test;
 
 import static org.junit.Assert.assertEquals;
-import gamod.tools.Fourier;
+import gamod.Fourier;
 import org.junit.Test;
 
 public class TestFft {
   @Test
-  public final void test_DFT() {
+  public void both_direction_DFT() {
     int n = 8;
     double[] ar = new double[n], ai = new double[n];
     double[] br = new double[n], bi = new double[n];
@@ -24,7 +24,7 @@ public class TestFft {
   }
 
   @Test
-  public final void test_FFT() {
+  public void both_direction_FFT() {
     int n = 8;
     double[] ar = new double[n], ai = new double[n];
     double[] br = new double[n], bi = new double[n];
@@ -42,7 +42,7 @@ public class TestFft {
   }
 
   @Test
-  public final void test_fixFFT() {
+  public void both_direction_fixFFT() {
     int log2size = 4;
     int size = 1 << log2size;
     short[] real = new short[size], imag = new short[size], orig = new short[size];
@@ -57,7 +57,7 @@ public class TestFft {
   }
 
   @Test
-  public final void test_fixFFT_extreme_square() {
+  public void fixFFT_of_extreme_square() {
     int log2size = 4;
     int size = 1 << log2size;
     short[] real = new short[size], imag = new short[size], orig = new short[size];
@@ -70,7 +70,7 @@ public class TestFft {
   }
 
   @Test
-  public final void test_fixFFT_extreme_pulse() {
+  public void fixFFT_of_extreme_pulse() {
     int log2size = 4;
     int size = 1 << log2size;
     short[] real = new short[size], imag = new short[size], orig = new short[size];

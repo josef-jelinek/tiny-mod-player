@@ -1,7 +1,6 @@
 package gamod.player;
 
-import gamod.Note;
-import gamod.tools.*;
+import gamod.*;
 import android.util.Log;
 
 public final class ModPlayer {

@@ -1,12 +1,11 @@
 package gamod.format;
 
+import static gamod.Tools.digit;
 import static gamod.format.ModFormat.Type.*;
 import static gamod.io.ByteReader.nulChar;
-import static gamod.tools.Tools.digit;
 import gamod.*;
 import gamod.io.ByteReader;
 import gamod.player.*;
-import gamod.tools.*;
 import android.util.Log;
 
 public final class ParserMod implements Parser {

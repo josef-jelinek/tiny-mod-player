@@ -1,4 +1,4 @@
-package gamod.tools;
+package gamod;
 
 public final class Tools {
   private static final String digits = "0123456789";

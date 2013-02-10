@@ -1,4 +1,4 @@
-package gamod.tools;
+package gamod;
 
 import static java.lang.Math.*;
 import java.util.Arrays;

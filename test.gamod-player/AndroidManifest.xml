@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest
-  xmlns:android="http://schemas.android.com/apk/res/android"
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
   package="gamod.test"
   android:versionCode="1"
   android:versionName="1.0">
+
   <instrumentation
-    android:targetPackage="gamod.client"
-    android:name="android.test.InstrumentationTestRunner"/>
+    android:name="android.test.InstrumentationTestRunner"
+    android:targetPackage="gamod.client"/>
+
   <uses-sdk
-    android:targetSdkVersion="7"
-    android:minSdkVersion="7"/>
-  <application>
-    <uses-library
-      android:name="android.test.runner"/>
+    android:minSdkVersion="8"
+    android:targetSdkVersion="17"/>
+
+  <application android:allowBackup="true">
+    <uses-library android:name="android.test.runner"/>
   </application>
+
 </manifest>

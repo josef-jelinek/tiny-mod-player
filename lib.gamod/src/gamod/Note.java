@@ -1,25 +1,32 @@
 package gamod;
 
-import gamod.tools.*;
-
 public final class Note {
   private static long holdMask = 1L << 63;
+  private static int paramMask = 0xFFFF;
+  private static int effectShift = 16;
+  private static int effectMask = 0xFFFF;
+  private static int keyShift = 32;
+  private static int keyMask = 0xFF;
+  private static int instrumentShift = 40;
+  private static int instrumentMask = 0xFFF;
+  private static int instrumentMaskLength = 12;
 
+  // 63    56 55    48 47    40 39    32 31    24 23    16 15     8 7      0
   // H0000000 0000IIII IIIIIIII KKKKKKKK EEEEEEEE EEEEEEEE PPPPPPPP PPPPPPPP
   public static long create(int key, int instrument, int effect, int param, boolean hold) {
     key = Tools.crop(key, 0, 128);
     long x = hold && key < 128 ? holdMask : 0;
-    x |= (instrument & 0xFFFL) << 40;
-    x |= (key & 0xFFL) << 32;
-    x |= (effect & 0xFFFFL) << 16;
-    x |= param & 0xFFFFL;
+    x |= (long)(instrument & instrumentMask) << instrumentShift;
+    x |= (long)(key & keyMask) << keyShift;
+    x |= (long)(effect & effectMask) << effectShift;
+    x |= (long)(param & paramMask);
     return x;
   }
 
   public static long create(int key, int instrument, int effect, int param) {
     return create(key, instrument, effect, param, false);
   }
-  
+
   public static boolean isHolding(long note) {
     if (getHold(note))
       return true;
@@ -31,21 +38,22 @@ public final class Note {
   private static boolean getHold(long note) {
     return (note & holdMask) != 0;
   }
-  
+
   public static int getKey(long note) {
-    return (int)(note >> 32 & 0xFF);
+    return (int)(note >> keyShift & keyMask);
   }
-  
+
   public static int getInstrument(long note) {
-    return (int)(note >> 40 & 0xFFF) << 20 >> 20;
+    int shift = 32 - instrumentMaskLength;
+    return (int)(note >> instrumentShift & instrumentMask) << shift >> shift;
   }
 
   public static int getEffect(long note) {
-    return (int)(note >> 16 & 0xFFFF);
+    return (int)(note >> effectShift & effectMask);
   }
-  
+
   public static int getParam(long note) {
-    return (int)(note & 0xFFFF);
+    return (int)(note & paramMask);
   }
 
   private static boolean hasEffect(long note) {
