@@ -1,6 +1,4 @@
-package gamod.player;
-
-import gamod.Note;
+package gamod;
 
 public final class Pattern {
   private final long[][] notes;

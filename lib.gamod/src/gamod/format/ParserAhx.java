@@ -1,8 +1,8 @@
 package gamod.format;
 
 import static gamod.Tools.crop;
+import gamod.Mod;
 import gamod.io.ByteReader;
-import gamod.player.Mod;
 
 public final class ParserAhx implements Parser {
   public String name() {

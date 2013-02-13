@@ -1,6 +1,4 @@
-package gamod.player;
-
-import gamod.*;
+package gamod;
 
 public final class SampledInstrument extends Instrument {
   private byte[] data;

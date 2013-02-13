@@ -1,7 +1,6 @@
 package gamod.player;
 
 import gamod.*;
-import android.util.Log;
 
 public final class ModPlayer {
   private static final int BUFFERS_PER_SECOND = 20;
@@ -51,7 +50,7 @@ public final class ModPlayer {
   }
 
   public synchronized void stop() {
-    audioDevice.stop();
+    audioDevice.close();
     active = false;
   }
 
@@ -135,9 +134,9 @@ public final class ModPlayer {
 
   private void doLine() {
     final Pattern block = mod.patterns[mod.patternOrder[blockIndex]];
-    if (line == 0)
-      Log.d("MOD", "#" + blockIndex + " (" + mod.patternOrder[blockIndex] + ")");
-    Log.d("MOD", block.rowString(line));
+    //if (line == 0)
+    //  Log.d("MOD", "#" + blockIndex + " (" + mod.patternOrder[blockIndex] + ")");
+    //Log.d("MOD", block.rowString(line));
     for (int i = 0; i < block.tracks(); i++) {
       track[i].doTrack(block.getNote(i, line), mod.instruments); // update sound (volume and pitch)
       doTrack(block.getNote(i, line)); // update control (global)

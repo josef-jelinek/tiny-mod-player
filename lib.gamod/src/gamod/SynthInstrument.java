@@ -1,6 +1,4 @@
-package gamod.player;
-
-import gamod.*;
+package gamod;
 
 public final class SynthInstrument extends Instrument {
   private final boolean hybrid;

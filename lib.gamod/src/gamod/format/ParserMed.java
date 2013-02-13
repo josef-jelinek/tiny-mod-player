@@ -3,8 +3,6 @@ package gamod.format;
 import static gamod.Tools.crop;
 import gamod.*;
 import gamod.io.ByteReader;
-import gamod.player.*;
-import android.util.Log;
 
 public final class ParserMed implements Parser {
   public String name() {
@@ -39,9 +37,9 @@ public final class ParserMed implements Parser {
     data.s4(); // reserved
     int expdata = data.s4(); // MMD0Exp
     data.skip(15); // 4reserved 2pstate 2pblock 2pline 2pseqnum 2actplayline 1counter
-    int extrasongs = data.u1();
-    if (extrasongs > 0)
-      Log.i("MOD", "Extrasongs " + extrasongs);
+    //int extrasongs = data.u1();
+    //if (extrasongs > 0)
+    //  Log.i("MOD", "Extrasongs " + extrasongs);
     // process song
     if (song == 0)
       return null;
@@ -53,10 +51,11 @@ public final class ParserMed implements Parser {
     int[] order = new int[256];
     for (int i = 0, j = 0; i < 256; i++) { // playseq[256]
       order[j] = data.u1();
-      if (j < songLength && order[j] >= blocks.length)
+      if (j < songLength && order[j] >= blocks.length) {
         songLength--; // skip an illegal position
-      else
+      } else {
         j++;
+      }
     }
     int tempo = Math.max(1, data.u2());
     int transpose = data.s1();
@@ -179,8 +178,8 @@ public final class ParserMed implements Parser {
       final int samplep) {
     final int length = data.s4();
     final int type = data.s2();
-    if (type > 0)
-      Log.i("MOD", "Unsupported sample type " + type);
+    //if (type > 0)
+    //  Log.i("MOD", "Unsupported sample type " + type);
     if (type == 0) {
       final Instrument instrument = new SampledInstrument(index + 1, length);
       for (int i = 0; i < length; i++)
@@ -228,9 +227,9 @@ public final class ParserMed implements Parser {
               instrument.data(wform)[i] = (byte)data.s1();
           } else { // sampled waveform
             final int ln = data.s4();
-            final int tp = data.s2();
-            if (tp != 0)
-              Log.i("MOD", "Illegal type of hybrid instrument waveform - " + tp);
+            //final int tp = data.s2();
+            //if (tp != 0)
+            //  Log.i("MOD", "Illegal type of hybrid instrument waveform - " + tp);
             instrument.waveform(wform, ln);
             for (int i = 0; i < ln; i++)
               instrument.data(wform)[i] = (byte)data.s1();

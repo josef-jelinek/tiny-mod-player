@@ -1,6 +1,5 @@
-package gamod.player;
+package gamod;
 
-import gamod.Instrument;
 import java.util.Arrays;
 
 public final class Mod {

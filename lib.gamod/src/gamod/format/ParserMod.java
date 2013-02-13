@@ -5,8 +5,6 @@ import static gamod.format.ModFormat.Type.*;
 import static gamod.io.ByteReader.nulChar;
 import gamod.*;
 import gamod.io.ByteReader;
-import gamod.player.*;
-import android.util.Log;
 
 public final class ParserMod implements Parser {
   private static final String ustText = "Ultimate Soundtracker";
@@ -323,15 +321,15 @@ public final class ParserMod implements Parser {
 
   private static ModFormat resolveLegacyType(ModFormat format, boolean isUst, boolean isNt) {
     if (isNt) {
-      if (isUst)
-        Log.d("MOD", "U.S.T. & N.T.");
-      if (format.type == ust)
-        Log.d("MOD", "U.S.T. -> N.T.");
+      //if (isUst)
+      //  Log.d("MOD", "U.S.T. & N.T.");
+      //if (format.type == ust)
+      //  Log.d("MOD", "U.S.T. -> N.T.");
       return format.changeType(nt, ntText);
     } else if (isUst) {
       if (format.type != nt)
         return format.changeType(ust, ustText);
-      Log.d("MOD", "N.T. -> U.S.T.");
+      //Log.d("MOD", "N.T. -> U.S.T.");
     }
     return format;
   }

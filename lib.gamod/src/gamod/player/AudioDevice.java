@@ -5,5 +5,5 @@ public interface AudioDevice {
   void write(short[] samples);
   void play();
   void pause();
-  void stop();
+  void close();
 }

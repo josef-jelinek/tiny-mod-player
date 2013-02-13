@@ -10,7 +10,7 @@ import android.view.View;
 import android.widget.*;
 
 public final class Start extends ListActivity {
-  private static final String modPath = "/sdcard/Mods";
+  private static final String modPath = Environment.getExternalStorageDirectory().getPath() + File.separator + "Mods";
   private final List<String> songs = new ArrayList<String>();
   private final Map<String, String> songPaths = new HashMap<String, String>();
   GuiControls guiControls = null;
@@ -35,12 +35,13 @@ public final class Start extends ListActivity {
     public void handleMessage(final Message message) {
       if (message.what == PlayerService.MSG_SET_PLAYING_STATE) {
         Log.d("MOD", "activity got message " + message.what + "(" + message.arg1 + ")");
-        if (message.arg1 == PlayerService.PLAYING_STATE_PLAY)
+        if (message.arg1 == PlayerService.PLAYING_STATE_PLAY) {
           guiControls.showButtonsForPlay();
-        else if (message.arg1 == PlayerService.PLAYING_STATE_PAUSE)
+        } else if (message.arg1 == PlayerService.PLAYING_STATE_PAUSE) {
           guiControls.showButtonsForPause();
-        else
+        } else {
           guiControls.showButtonsForStop();
+        }
         guiControls.showInfo(message.getData().getString("info"));
         updateSongList();
       } else {
@@ -53,7 +54,7 @@ public final class Start extends ListActivity {
   @Override
   public void onCreate(final Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    Log.d("MOD", "activity created");
+    Log.d("MOD", "activity created " + modPath);
     initGui();
     setBroadcastReceivers();
     connectPlayerService();
@@ -124,7 +125,7 @@ public final class Start extends ListActivity {
   }
 
   @Override
-  protected void onListItemClick(final ListView l, final View v, final int position, final long id) {
+  protected void onListItemClick(ListView l, View v, int position, long id) {
     final Message message = Message.obtain(null, PlayerService.MSG_PLAY_FILE);
     sendMessage(addStringParameter(message, "name", songPaths.get(songs.get(position))));
   }

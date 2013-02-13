@@ -33,7 +33,7 @@ public final class AndroidAudioDevice implements AudioDevice {
     track.pause();
   }
 
-  public void stop() {
+  public void close() {
     track.stop();
   }
 }

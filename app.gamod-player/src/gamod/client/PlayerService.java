@@ -1,8 +1,9 @@
 package gamod.client;
 
+import gamod.Mod;
 import gamod.client.audio.AndroidAudioDevice;
 import gamod.format.*;
-import gamod.player.*;
+import gamod.player.ModPlayer;
 import gamod.unpack.*;
 import java.io.*;
 import java.util.*;
@@ -26,23 +27,23 @@ public class PlayerService extends Service {
   final ModPlayer player = new ModPlayer(new AndroidAudioDevice(44100), true);
   private static final List<Parser> parsers = new ArrayList<Parser>();
   private static final List<Unpacker> unpackers = new ArrayList<Unpacker>();
-  
   private final Messenger messenger = new Messenger(new Handler() {
     @Override
     public void handleMessage(final Message message) {
       Log.d("MOD", "service got a message " + message.what);
-      if (message.what == MSG_PLAY_FILE)
+      if (message.what == MSG_PLAY_FILE) {
         play(message.getData().getString("name"));
-      else if (message.what == MSG_PAUSE)
+      } else if (message.what == MSG_PAUSE) {
         pause();
-      else if (message.what == MSG_RESUME)
+      } else if (message.what == MSG_RESUME) {
         resume();
-      else if (message.what == MSG_STOP)
+      } else if (message.what == MSG_STOP) {
         stop();
-      else if (message.what == MSG_GET_PLAYING_STATE)
+      } else if (message.what == MSG_GET_PLAYING_STATE) {
         sendPlayingState(message.replyTo);
-      else
+      } else {
         super.handleMessage(message);
+      }
     }
   });
   static {

@@ -1,7 +1,7 @@
 package gamod.test;
 
+import gamod.Mod;
 import gamod.format.*;
-import gamod.player.Mod;
 import java.io.*;
 import android.test.ActivityTestCase;
 
