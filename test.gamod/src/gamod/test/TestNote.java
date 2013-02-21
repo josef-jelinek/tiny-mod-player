@@ -65,4 +65,26 @@ public class TestNote {
     assertEquals(0xFFFF, Note.getParam(Note.create(0, 0, 0, 0xFFFF)));
     assertEquals(0xFFFF, Note.getParam(Note.create(0, 0, 0, 0xFFFFF)));
   }
+
+  @Test
+  public void note_effect_detection() {
+    assertFalse(Note.hasEffect(Note.create(0, 0, 0, 0)));
+    assertFalse(Note.hasEffect(Note.create(1, 0, 0, 0)));
+    assertFalse(Note.hasEffect(Note.create(0, 1, 0, 0)));
+    assertTrue(Note.hasEffect(Note.create(0, 0, 1, 0)));
+    assertTrue(Note.hasEffect(Note.create(0, 0, 0, 1)));
+  }
+  
+  @Test
+  public void conversion_to_string() {
+    assertEquals(" -  ··· ····:····", Note.toString(Note.create(-1, -1, 0, 0)));
+    assertEquals(" -    0 ····:····", Note.toString(Note.create(0, 0, 0, 0)));
+    assertEquals(" *    0 ····:····", Note.toString(Note.create(0, 0, 0, 0, true)));
+    assertEquals("C-1   1 0001:0001", Note.toString(Note.create(1, 1, 1, 1)));
+    assertEquals("C-1   1 0001:0001", Note.toString(Note.create(1, 1, 1, 1, true)));
+    assertEquals("C#1  16 0010:00FF", Note.toString(Note.create(2, 16, 16, 255)));
+    assertEquals("D-1 999 0100:0FFF", Note.toString(Note.create(3, 999, 256, 4095)));
+    assertEquals("B-8   1 0100:0FFF", Note.toString(Note.create(96, 1001, 256, 4095)));
+    assertEquals(" !    0 FFFF:0000", Note.toString(Note.create(128, 1000, 65535, 65536)));
+  }
 }

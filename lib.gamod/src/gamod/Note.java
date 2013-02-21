@@ -56,7 +56,7 @@ public final class Note {
     return (int)(note & paramMask);
   }
 
-  private static boolean hasEffect(long note) {
+  public static boolean hasEffect(long note) {
     return getEffect(note) != 0 || getParam(note) != 0;
   }
 
@@ -79,7 +79,7 @@ public final class Note {
   }
 
   private static String d3(int x) {
-    String s = x / 100 == 0 ? " " : "" + h1(x / 100);
+    String s = x / 100 % 10 == 0 ? " " : "" + h1(x / 100 % 10);
     s += x / 10 % 10 == 0 ? " " : h1(x / 10 % 10);
     return s + h1(x % 10);
   }

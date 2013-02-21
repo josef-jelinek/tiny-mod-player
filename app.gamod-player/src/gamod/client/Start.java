@@ -1,5 +1,6 @@
 package gamod.client;
 
+import gamod.client.ui.Controls;
 import java.io.File;
 import java.util.*;
 import android.app.ListActivity;
@@ -13,8 +14,8 @@ public final class Start extends ListActivity {
   private static final String modPath = Environment.getExternalStorageDirectory().getPath() + File.separator + "Mods";
   private final List<String> songs = new ArrayList<String>();
   private final Map<String, String> songPaths = new HashMap<String, String>();
-  GuiControls guiControls = null;
-  Messenger serviceMessenger = null;
+  private Controls guiControls = null;
+  private Messenger serviceMessenger = null;
   private BroadcastReceiver playReceiver;
   private BroadcastReceiver pauseReceiver;
   private BroadcastReceiver stopReceiver;
@@ -62,9 +63,7 @@ public final class Start extends ListActivity {
 
   private void initGui() {
     setContentView(R.layout.mod_list);
-    guiControls =
-        new GuiControls(findButton(R.id.play), findButton(R.id.pause), findButton(R.id.stop),
-            findText(R.id.text_info));
+    guiControls = new Controls(this, findButton(R.id.play), findButton(R.id.pause), findButton(R.id.stop), findText(R.id.text_info));
   }
 
   private Button findButton(int id) {
@@ -130,37 +129,37 @@ public final class Start extends ListActivity {
     sendMessage(addStringParameter(message, "name", songPaths.get(songs.get(position))));
   }
 
-  void sendMessage(final Message message) {
+  void sendMessage(Message message) {
     if (serviceMessenger != null)
       try {
         message.replyTo = activityMessenger;
         serviceMessenger.send(message);
-      } catch (final RemoteException e) {
+      } catch (RemoteException e) {
         Log.w("MOD", e.getMessage(), e);
       }
   }
 
-  private Message addStringParameter(final Message message, final String name, final String value) {
+  private Message addStringParameter(Message message, String name, String value) {
     final Bundle b = new Bundle();
     b.putString(name, value); // more files using putStringArray()
     message.setData(b);
     return message;
   }
 
-  private static List<File> listSongFiles(final File directory) {
+  private static List<File> listSongFiles(File directory) {
     final File[] files = directory.listFiles();
     return files == null ? new ArrayList<File>(0) : Arrays.asList(files);
   }
 
-  void playClicked() {
+  public void playClicked() {
     sendMessage(Message.obtain(null, PlayerService.MSG_RESUME));
   }
 
-  void pauseClicked() {
+  public void pauseClicked() {
     sendMessage(Message.obtain(null, PlayerService.MSG_PAUSE));
   }
 
-  void stopClicked() {
+  public void stopClicked() {
     sendMessage(Message.obtain(null, PlayerService.MSG_STOP));
   }
 
@@ -174,71 +173,5 @@ public final class Start extends ListActivity {
     }
     Collections.sort(songs, String.CASE_INSENSITIVE_ORDER);
     setListAdapter(new ArrayAdapter<String>(this, R.layout.mod_item, songs));
-  }
-
-  private final class GuiControls {
-    private final Button playButton;
-    private final Button pauseButton;
-    private final Button stopButton;
-    private final TextView infoText;
-
-    public GuiControls(final Button play, final Button pause, final Button stop, final TextView info) {
-      playButton = play;
-      pauseButton = pause;
-      stopButton = stop;
-      infoText = info;
-      setButtonCallbacks();
-      showButtonsForStop();
-    }
-
-    public void setButtonCallbacks() {
-      playButton.setOnClickListener(new View.OnClickListener() {
-        public void onClick(final View v) {
-          playClicked();
-        }
-      });
-      pauseButton.setOnClickListener(new View.OnClickListener() {
-        public void onClick(final View v) {
-          pauseClicked();
-        }
-      });
-      stopButton.setOnClickListener(new View.OnClickListener() {
-        public void onClick(final View v) {
-          stopClicked();
-        }
-      });
-    }
-
-    public void showButtonsForPlay() {
-      hideButton(playButton);
-      showButton(pauseButton);
-      stopButton.setEnabled(true);
-    }
-
-    public void showButtonsForPause() {
-      showButton(playButton);
-      hideButton(pauseButton);
-      stopButton.setEnabled(true);
-    }
-
-    public void showButtonsForStop() {
-      showButton(playButton);
-      hideButton(pauseButton);
-      stopButton.setEnabled(false);
-    }
-
-    private void showButton(final Button button) {
-      button.setEnabled(true);
-      button.setVisibility(View.VISIBLE);
-    }
-
-    private void hideButton(final Button button) {
-      button.setEnabled(false);
-      button.setVisibility(View.GONE);
-    }
-
-    public void showInfo(final String s) {
-      infoText.setText(s);
-    }
   }
 }

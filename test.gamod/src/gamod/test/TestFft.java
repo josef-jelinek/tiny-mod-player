@@ -1,6 +1,6 @@
 package gamod.test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import gamod.Fourier;
 import org.junit.Test;
 
@@ -54,6 +54,22 @@ public class TestFft {
     Fourier.fixFFTi(real, imag, log2size);
     for (int i = 0; i < size; i++)
       assertEquals(orig[i], real[i], 2);
+  }
+
+  @Test
+  public void size_limits_fixFFT() {
+    int log2size = 10;
+    int size = 1 << log2size;
+    short[] real = new short[size], imag = new short[size], orig = new short[size];
+    setRampUp(real, orig, size);
+    try {
+      Fourier.fixFFT(real, imag, log2size);
+      fail();
+    } catch (IllegalArgumentException e) {}
+    try {
+      Fourier.fixFFTi(real, imag, log2size);
+      fail();
+    } catch (IllegalArgumentException e) {}
   }
 
   @Test

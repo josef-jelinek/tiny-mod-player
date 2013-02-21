@@ -29,7 +29,7 @@ public class PlayerService extends Service {
   private static final List<Unpacker> unpackers = new ArrayList<Unpacker>();
   private final Messenger messenger = new Messenger(new Handler() {
     @Override
-    public void handleMessage(final Message message) {
+    public void handleMessage(Message message) {
       Log.d("MOD", "service got a message " + message.what);
       if (message.what == MSG_PLAY_FILE) {
         play(message.getData().getString("name"));
@@ -62,19 +62,19 @@ public class PlayerService extends Service {
   }
 
   @Override
-  public IBinder onBind(final Intent intent) {
+  public IBinder onBind(Intent intent) {
     Log.d("MOD", "service binding");
     return messenger.getBinder();
   }
 
   void startForeground(final String name) {
     Log.d("MOD", "service going foreground");
-    final Intent intent = new Intent(this, Start.class);
+    Intent intent = new Intent(this, Start.class);
     intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-    final PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
-    final CharSequence text = getString(R.string.service_song_playing) + " " + name;
-    final long now = System.currentTimeMillis();
-    final Notification notification = new Notification(R.drawable.notify_icon, text, now);
+    PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
+    CharSequence text = getString(R.string.service_song_playing) + " " + name;
+    long now = System.currentTimeMillis();
+    Notification notification = new Notification(R.drawable.notify_icon, text, now);
     notification.setLatestEventInfo(this, getText(R.string.app_name), text, pendingIntent);
     startForeground(R.string.service_song_playing, notification);
   }
@@ -84,7 +84,7 @@ public class PlayerService extends Service {
     stopForeground(true);
   }
 
-  private void playSong(final String filePath) {
+  private void playSong(String filePath) {
     File file = new File(filePath);
     byte[] data = new byte[(int)file.length()];
     try {
@@ -95,7 +95,7 @@ public class PlayerService extends Service {
         return;
       }
       in.close();
-    } catch (final Exception e) {
+    } catch (Exception e) {
       Log.e("MOD", e.getMessage(), e);
       return;
     }
@@ -128,7 +128,7 @@ public class PlayerService extends Service {
 
   private Thread playThread = null;
 
-  private synchronized void playLoop(final Mod mod, final String name) {
+  private synchronized void playLoop(Mod mod, final String name) {
     stopLoop();
     player.play(mod);
     playThread = new Thread(new Runnable() {
@@ -144,7 +144,7 @@ public class PlayerService extends Service {
             else
               player.mix();
           }
-        } catch (final InterruptedException e) {
+        } catch (InterruptedException e) {
           player.stop();
         } finally {
           stopForeground();
@@ -162,10 +162,10 @@ public class PlayerService extends Service {
         playThread.interrupt();
         playThread.join();
       }
-    } catch (final InterruptedException e) {}
+    } catch (InterruptedException e) {}
   }
 
-  void play(final String path) {
+  void play(String path) {
     player.stop();
     broadcastStopState();
     playSong(path);
@@ -177,7 +177,7 @@ public class PlayerService extends Service {
         player.resume();
         broadcastPlayState();
       }
-    } catch (final IndexOutOfBoundsException e) {
+    } catch (IndexOutOfBoundsException e) {
       Log.e("MOD", e.getMessage(), e);
     }
   }
@@ -191,18 +191,17 @@ public class PlayerService extends Service {
     stopLoop();
   }
 
-  void sendPlayingState(final Messenger messenger) {
+  void sendPlayingState(Messenger messenger) {
     try {
-      final int state =
-          player.isActive() ? player.isPaused() ? PLAYING_STATE_PAUSE : PLAYING_STATE_PLAY : PLAYING_STATE_STOP;
+      int state = player.isActive() ? player.isPaused() ? PLAYING_STATE_PAUSE : PLAYING_STATE_PLAY : PLAYING_STATE_STOP;
       Log.d("MOD", "service sent playing state message " + state + " " + messenger.getClass());
       messenger.send(createPlayingStateMessage(state));
-    } catch (final RemoteException e) {
+    } catch (RemoteException e) {
       Log.e("MOD", e.getMessage(), e);
     }
   }
 
-  private Message createPlayingStateMessage(final int state) {
+  private Message createPlayingStateMessage(int state) {
     final Message message = Message.obtain(null, MSG_SET_PLAYING_STATE, state, 0);
     final Bundle bundle = new Bundle();
     bundle.putString("info", player.toString());
